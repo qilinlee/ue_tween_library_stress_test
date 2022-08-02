@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.8.7 beta",
+	"FriendlyName": "iTween",
+	"Description": "Procedural, on-the-fly animation for actors, components and UMG.",
+	"Category": "iTween",
+	"CreatedBy": "Bob Berkebile - PixelPlacement, Jared Therriault - Sweet",
+	"CreatedByURL": "http://www.pixelplacement.com",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "5.0.0",
+	"CanContainContent": false,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "iTween",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"IOS",
+				"Android",
+				"Mac",
+				"TVOS"
+			]
+		}
+	]
+}
