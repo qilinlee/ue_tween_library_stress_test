@@ -8,7 +8,8 @@ public class TweenComparingEditorTarget : TargetRules
 	public TweenComparingEditorTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.AddRange( new string[] { "TweenComparing" } );
+        //DefaultBuildSettings = BuildSettingsVersion.V2;
+        BuildEnvironment = TargetBuildEnvironment.Unique;
+        ExtraModuleNames.AddRange( new string[] { "TweenComparing" } );
 	}
 }
