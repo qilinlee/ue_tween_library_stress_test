@@ -39,6 +39,7 @@ public class QTween : ModuleRules
 				"Slate",
 				"SlateCore",
 				// ... add private dependencies that you statically link with here ...	
+				"UMG",
 			}
 			);
 		
@@ -49,5 +50,10 @@ public class QTween : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+
+		if(Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
+        }
 	}
 }
