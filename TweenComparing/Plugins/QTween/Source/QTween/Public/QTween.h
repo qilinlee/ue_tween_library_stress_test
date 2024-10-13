@@ -198,9 +198,9 @@ public:
 	UPROPERTY()
 	EQTweenLoopType LoopType;
 
-	static float val;
-	static float dt;
-	static FVector newVect;
+	static float Val;
+	static float DT;
+	static FVector NewVector;
 
 	FVector Diff;
 	TWeakObjectPtr<UObject> Owner;
@@ -217,49 +217,67 @@ private:
 	TFunction<void(void)> EaseInternal;
 
 
-	static TArray<IQTweenEasing*> _EasingFunc;
+	static TArray<IQTweenEasing*> EasingFuncList;
 public:
-	static void InitEasingMothod();
-	uint64 GetUniqueId();
+	static void InitEasingMethod();
+	uint64 GetUniqueId() const;
 	void Reset();
-	void CallOnCompletes();
+	void CallOnCompletes() const;
 
 	UFUNCTION(BlueprintCallable)
 	UQTween* Cancel(UObject* Obj);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetFollow();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetOffset(const FVector& Offset);
+	
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetCallback();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetTarget(UObject* Obj);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* UpdateNow();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* Pause();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* Resume();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetAxis(const FVector& Axis);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetDelay(float DelayTime);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetEase(EQTweenType EaseType);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetEaseCurve(const UCurveFloat* Curve);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetOvershoot(float Over);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetPeriod(float InPeriod);
+
 	UFUNCTION(BlueprintCallable)
-	UQTween* SetScale(float fScale);
+	UQTween* SetSµcale(float fScale);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetTo(const FVector& InTo);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetFrom(const FVector& InFrom);
+	
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetDiff(const FVector& Diff);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetHasInitialized(bool bInitialized);
 
@@ -267,12 +285,16 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetPassed(float InPassed);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetTime(float InTime);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetSpeed(float InSpeed);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetRepeat(int32 Repeat);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetLoopType(EQTweenLoopType eLoopType);
 
@@ -284,26 +306,34 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetUseFrames(bool InUseFrames);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetUseManualTime(bool InUseManualTime);
 
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetLoopCount(int32 count);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetLoopOnce();
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetLoopClamp(int32 Loops = 0);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetLoopPingPong(int32 Loops = 0);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetPoint(const FVector& Point);
 
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetOnCompleteOnRepeat(bool bIsOn);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetOnCompleteOnStart(bool bIsOn);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetDirection(float InDir);
+
 	UFUNCTION(BlueprintCallable)
 	UQTween* SetRecursive(bool bUseRecursive);
 
@@ -360,6 +390,6 @@ private:
 
 	FVector TweenOnCurve();
 	FVector TweenByEasingType();
-	FLinearColor TweenColor(UQTween* Tween, float Fractor);
+	FLinearColor TweenColor(UQTween* Tween, float Factor);
 };
 

@@ -20,7 +20,7 @@ UQTweenSequence::UQTweenSequence(const FObjectInitializer& ObjectInitializer)
 
 }
 
-uint64 UQTweenSequence::GetId()
+uint64 UQTweenSequence::GetId() const
 {
 	uint64 id = (uint64)Id;
 	id |= (Counter << 16);
@@ -42,7 +42,7 @@ void UQTweenSequence::Init(uint32 InId, uint32 GlobalCounter)
 	Current = this;
 }
 
-UQTweenSequence* UQTweenSequence::Append(float delay)
+UQTweenSequence* UQTweenSequence::Append(float delay) const
 {
 	if(Current)
 	{
@@ -98,7 +98,7 @@ UQTweenSequence* UQTweenSequence::AddOn()
 	return Current;
 }
 
-float UQTweenSequence::AddPreviousDelays()
+float UQTweenSequence::AddPreviousDelays() const
 {
 	UQTweenSequence* Prev = Current->Previous;
 	if (nullptr != Prev && Prev->Tween != nullptr)

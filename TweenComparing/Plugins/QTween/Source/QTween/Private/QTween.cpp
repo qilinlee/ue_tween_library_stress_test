@@ -14,68 +14,67 @@
 //	UQTween
 //-------------------------------------------------------------------------
 
-float UQTween::val = 0.f;
-float UQTween::dt = 0.f;
-FVector UQTween::newVect = FVector::ZeroVector;
-TArray<IQTweenEasing*> UQTween::_EasingFunc;
-
+float UQTween::Val = 0.f;
+float UQTween::DT = 0.f;
+FVector UQTween::NewVector = FVector::ZeroVector;
+TArray<IQTweenEasing*> UQTween::EasingFuncList;
 UQTween::UQTween(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bToggle(0)
-	, bUseEstimatedTime(0)
-	, bUseFrames(0)
-	, bUseManualTime(0)
-	, bUsesNormalDt(0)
-	, bHasInitiliazed(0)
-	, bHasExtraOnCompletes(0)
-	, bHasPhysics(0)
-	, bOnCompleteOnRepeat(0)
-	, bOnCompleteOnStart(0)
-	, bUseRecursion(0)
-	, bHasUpdateCallback(0)
-	, LoopCount(0)
-	, Counter(-1)
-	, RatioPassed(0.f)
-	, Passed(0.f)
-	, Delay(0.f)
-	, Time(0.f)
-	, Speed(1.f)
-	, LastVal(0.f)
-	, Direction(0.f)
-	, DirectionLast(0.f)
-	, Overshoot(0.f)
-	, Period(0.f)
-	, Scale(1.f)
-	, Type(EQTweenAction::ALPHA)
-	, LoopType(EQTweenLoopType::Once)
-	, EaseType(EQTweenType::NotUsed)
-	, Id(0)
-	, CurEasing(nullptr)
-	, CurEasingType(EQTweenEasingType::EasingNone)
-	, EaseMethod(nullptr)
+	  , bToggle(0)
+	  , bUseEstimatedTime(0)
+	  , bUseFrames(0)
+	  , bUseManualTime(0)
+	  , bUsesNormalDt(0)
+	  , bHasInitiliazed(0)
+	  , bHasExtraOnCompletes(0)
+	  , bHasPhysics(0)
+	  , bOnCompleteOnRepeat(0)
+	  , bOnCompleteOnStart(0)
+	  , bUseRecursion(0)
+	  , bHasUpdateCallback(0)
+	  , LoopCount(0)
+	  , Counter(-1)
+	  , RatioPassed(0.f)
+	  , Passed(0.f)
+	  , Delay(0.f)
+	  , Time(0.f)
+	  , Speed(1.f)
+	  , LastVal(0.f)
+	  , Direction(0.f)
+	  , DirectionLast(0.f)
+	  , Overshoot(0.f)
+	  , Period(0.f)
+	  , Scale(1.f)
+	  , Optional()
+      , Type(EQTweenAction::ALPHA)
+	  , LoopType(EQTweenLoopType::Once)
+	  , EaseType(EQTweenType::NotUsed)
+	  , Id(0)
+	  , CurEasing(nullptr)
+	  , CurEasingType(EQTweenEasingType::EasingNone)
+	  , EaseMethod(nullptr)
 {
-
 }
 
-void UQTween::InitEasingMothod()
+void UQTween::InitEasingMethod()
 {
-	_EasingFunc.Reserve((int32)EQTweenEasingFunc::Max);
-	_EasingFunc.Empty();
-	_EasingFunc.Add(&QTween::Easing::FLinearEasing::Linear);
-	_EasingFunc.Add(&QTween::Easing::FQuadraticEasing::Quard);
-	_EasingFunc.Add(&QTween::Easing::FCubicInEasing::Cubic);
-	_EasingFunc.Add(&QTween::Easing::FQuarticEasing::Quart);
-	_EasingFunc.Add(&QTween::Easing::FQuinticEasing::Quintic);
-	_EasingFunc.Add(&QTween::Easing::FSinEasing::Sin);
-	_EasingFunc.Add(&QTween::Easing::FExponentialEasing::Exponential);
-	_EasingFunc.Add(&QTween::Easing::FCircularInEasing::Circluar);
-	_EasingFunc.Add(&QTween::Easing::FBounceEasing::Bounce);
-	_EasingFunc.Add(&QTween::Easing::FElasticEasing::Elastic);
-	_EasingFunc.Add(&QTween::Easing::FBackEasing::Back);
-	_EasingFunc.Add(&QTween::Easing::FSpringEasing::Spring);
+	EasingFuncList.Reserve(static_cast<int32>(EQTweenEasingFunc::Max));
+	EasingFuncList.Empty();
+	EasingFuncList.Add(&QTween::Easing::FLinearEasing::Linear);
+	EasingFuncList.Add(&QTween::Easing::FQuadraticEasing::Quard);
+	EasingFuncList.Add(&QTween::Easing::FCubicInEasing::Cubic);
+	EasingFuncList.Add(&QTween::Easing::FQuarticEasing::Quart);
+	EasingFuncList.Add(&QTween::Easing::FQuinticEasing::Quintic);
+	EasingFuncList.Add(&QTween::Easing::FSinEasing::Sin);
+	EasingFuncList.Add(&QTween::Easing::FExponentialEasing::Exponential);
+	EasingFuncList.Add(&QTween::Easing::FCircularInEasing::Circluar);
+	EasingFuncList.Add(&QTween::Easing::FBounceEasing::Bounce);
+	EasingFuncList.Add(&QTween::Easing::FElasticEasing::Elastic);
+	EasingFuncList.Add(&QTween::Easing::FBackEasing::Back);
+	EasingFuncList.Add(&QTween::Easing::FSpringEasing::Spring);
 }
 
-uint64 UQTween::GetUniqueId()
+uint64 UQTween::GetUniqueId() const
 {
 	uint64 t = (uint64)Id;
 	t |= (Counter << 16);
@@ -112,7 +111,7 @@ void UQTween::Reset()
 	Optional.Reset();
 }
 
-void UQTween::CallOnCompletes()
+void UQTween::CallOnCompletes() const
 {
 	if (Optional.OnComplete.IsBound())
 	{
@@ -226,9 +225,9 @@ UQTween* UQTween::SetEase(EQTweenType InEaseType)
 	case EQTweenType::EaseInOutElastic:
 	case EQTweenType::EaseSpring:
 	{
-		uint8 ease = (uint8)InEaseType;
-		EQTweenEasingType t = (EQTweenEasingType)(ease & (uint8)EQTweenEasingType::EasingInOut);
-		EQTweenEasingFunc func = (EQTweenEasingFunc)((ease - (uint8)t) >> 2);
+		uint8 ease = static_cast<uint8>(InEaseType);
+		EQTweenEasingType t = static_cast<EQTweenEasingType>(ease & static_cast<uint8>(EQTweenEasingType::EasingInOut));
+		EQTweenEasingFunc func = static_cast<EQTweenEasingFunc>((ease - static_cast<uint8>(t)) >> 2);
 		SetEaseInternal(func, t);
 		break;
 	}
@@ -279,10 +278,10 @@ UQTween* UQTween::SetScale()
 
 	EaseInternal = [this]()
 		{
-			newVect = (this->*EaseMethod)();
+			NewVector = (this->*EaseMethod)();
 			if (Owner != nullptr && Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetScale(Owner.Get(), newVect);
+				FQTweenPropAccessor::SetScale(Owner.Get(), NewVector);
 			}
 		};
 	return this;
@@ -298,8 +297,8 @@ UQTween* UQTween::SetCallbackColor()
 
 	EaseInternal = [this]()
 		{
-			newVect = (this->*EaseMethod)();
-			float fractor = newVect.X;
+			NewVector = (this->*EaseMethod)();
+			float fractor = NewVector.X;
 			FLinearColor toColor = TweenColor(this, fractor);
 			if (Owner != nullptr && Owner.IsValid())
 			{
@@ -527,10 +526,10 @@ UQTween* UQTween::SetAlpha()
 
 	EaseInternal = [this]()
 		{
-			newVect = (this->*EaseMethod)();
+			NewVector = (this->*EaseMethod)();
 			if (Owner != nullptr && Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetAlpha(Owner.Get(), newVect.X);
+				FQTweenPropAccessor::SetAlpha(Owner.Get(), NewVector.X);
 			}
 		};
 
@@ -550,8 +549,8 @@ UQTween* UQTween::SetColor()
 
 	EaseInternal = [this]()
 		{
-			newVect = (this->*EaseMethod)();
-			float fractor = newVect.X;
+			NewVector = (this->*EaseMethod)();
+			float fractor = NewVector.X;
 			FLinearColor toColor = TweenColor(this, fractor);
 			if (Owner != nullptr && Owner.IsValid())
 			{
@@ -571,10 +570,10 @@ UQTween* UQTween::SetMove()
         }
         };
     EaseInternal = [this]() {
-        newVect = (this->*EaseMethod)();
+        NewVector = (this->*EaseMethod)();
         if (Owner != nullptr && Owner.IsValid())
         {
-			FQTweenPropAccessor::SetPosition(Owner.Get(), newVect);
+			FQTweenPropAccessor::SetPosition(Owner.Get(), NewVector);
         }
         };
     return this;
@@ -596,10 +595,10 @@ UQTween* UQTween::SetRotate()
 
 	EaseInternal = [this]()
 		{
-			newVect = (this->*EaseMethod)();
+			NewVector = (this->*EaseMethod)();
 			if (Owner != nullptr && Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetRotate(Owner.Get(), newVect);
+				FQTweenPropAccessor::SetRotate(Owner.Get(), NewVector);
 			}
 		};
 	return this;
@@ -679,8 +678,8 @@ void UQTween::InitSpeed()
 
 void UQTween::Callback()
 {
-	newVect = (this->*EaseMethod)();
-	val = newVect.X;
+	NewVector = (this->*EaseMethod)();
+	Val = NewVector.X;
 }
 
 bool UQTween::UpdateInternal()
@@ -718,8 +717,7 @@ bool UQTween::UpdateInternal()
 			Optional.OnUpdate.Broadcast(RatioPassed);
 		}
 
-		bool bIsTweenFinished = DirectionLocal > 0.f ? Passed >= Time : Passed <= 0.f;
-		if (bIsTweenFinished)
+		if (bool bIsTweenFinished = DirectionLocal > 0.f ? Passed >= Time : Passed <= 0.f)
 		{ // increment or flip tween
 			LoopCount--;
 			if (LoopType == EQTweenLoopType::PingPong)
@@ -763,9 +761,9 @@ bool UQTween::IsValid(const UQTween* Tween)
 
 void UQTween::SetEaseInternal(EQTweenEasingFunc func, EQTweenEasingType InType)
 {
-	int32 index = (int32)func;
-	if (0 <= index && index < (int32)EQTweenEasingFunc::Max)
-		CurEasing = _EasingFunc[index];
+	int32 index = static_cast<int32>(func);
+	if (0 <= index && index < static_cast<int32>(EQTweenEasingFunc::Max))
+		CurEasing = EasingFuncList[index];
 	else
 		CurEasing = nullptr;
 	CurEasingType = InType;
@@ -786,12 +784,18 @@ void UQTween::SetEaseShake()
 	EaseMethod = &UQTween::TweenOnCurve;
 }
 
+void UQTween::SetEaseSprint()
+{
+
+}
 
 FVector UQTween::TweenOnCurve()
 {
 	float k = RatioPassed;
 	if (Optional.AnimCurve && Optional.AnimCurve->IsValidLowLevel())
+	{
 		k = Optional.AnimCurve->GetFloatValue(RatioPassed);
+	}
 
 	return From + Diff * k;
 }
@@ -821,9 +825,9 @@ FVector UQTween::TweenByEasingType()
 	return From + Diff * k;
 }
 
-FLinearColor UQTween::TweenColor(UQTween* Tween, float Fractor)
+FLinearColor UQTween::TweenColor(UQTween* Tween, float Factor)
 {
-	FVector rgb = Tween->Optional.Point * Fractor + Tween->Optional.Axis * (1 - Fractor);
-	float a = Tween->To.Y * Fractor + Tween->From.Y * (1 - Fractor);
+	FVector rgb = Tween->Optional.Point * Factor + Tween->Optional.Axis * (1 - Factor);
+	float a = Tween->To.Y * Factor + Tween->From.Y * (1 - Factor);
 	return FLinearColor(rgb.X, rgb.Y, rgb.Z, a);
 }

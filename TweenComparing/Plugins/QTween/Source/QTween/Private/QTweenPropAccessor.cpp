@@ -129,7 +129,9 @@ float FQTweenWidgetPropAccessor::GetAlpha(UObject* obj)
 {
 	auto widget = Cast<UWidget>(obj);
 	if (nullptr != widget)
-		widget->GetRenderOpacity();
+	{
+		return widget->GetRenderOpacity();
+	}
 	return 1;
 }
 
@@ -137,7 +139,9 @@ void FQTweenWidgetPropAccessor::SetAlpha(UObject* obj, float alpha)
 {
 	auto widget = Cast<UWidget>(obj);
 	if (nullptr != widget)
+	{
 		widget->SetRenderOpacity(alpha);
+	}
 }
 
 FLinearColor FQTweenWidgetPropAccessor::GetColor(UObject* obj)

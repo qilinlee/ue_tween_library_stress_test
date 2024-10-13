@@ -40,17 +40,17 @@ private:
 	int32 DebugIter;
 	uint32 Id;
 public:
-	uint64 GetId();
+	uint64 GetId() const;
 	void Reset();
 	void Init(uint32 id, uint32 GlobalCounter);
-	UQTweenSequence* Append(float Delay);
+	UQTweenSequence* Append(float Delay) const;
 	UQTweenSequence* Append(UQTween* Tween);
 	UQTweenSequence* Insert(UQTween* Tween);
 	UQTweenSequence* SetScale(float Scale);
 	UQTweenSequence* Reverse();
 private:
 	UQTweenSequence* AddOn();
-	float AddPreviousDelays();
+	float AddPreviousDelays() const;
 	void SetScaleRecursive(UQTweenSequence* Seq, float TimeScale, int Count);
 	
 	

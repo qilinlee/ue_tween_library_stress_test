@@ -28,30 +28,40 @@ void UQTweenEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
     Super::Initialize(Collection);
 
-	UQTween::InitEasingMothod();
+	UQTween::InitEasingMethod();
 
-	FRichCurve* RichCurvePunch = new FRichCurve();
-	RichCurvePunch->AddKey(0.0f, 0.0f);
-	RichCurvePunch->AddKey(0.112586f, 0.9976035f);
-	RichCurvePunch->AddKey(0.3120486f, -0.1720615f);
-	RichCurvePunch->AddKey(0.4316337f, 0.07030682f);
-	RichCurvePunch->AddKey(0.5524869f, -0.03141804f);
-	RichCurvePunch->AddKey(0.6549395f, 0.003909959f);
-	RichCurvePunch->AddKey(0.770987f, -0.009817753f);
-	RichCurvePunch->AddKey(0.8838775f, 0.001939224f);
-	RichCurvePunch->AddKey(1.0f, 0.0f);
-	CurvePunch = NewObject<UCurveFloat>();
+	CurvePunch = NewObject<UCurveFloat>(this);
 	auto ListPunch = CurvePunch->GetCurves();
-	ListPunch.Add(FRichCurveEditInfo(RichCurvePunch, TEXT("Punch")));
+	if(ListPunch.Num() > 0)
+	{
+		ListPunch[0].CurveName = TEXT("Punch"); 
+		if(FRichCurve* RichCurvePunch = StaticCast<FRichCurve*>(ListPunch[0].CurveToEdit))
+		{
+			RichCurvePunch->AddKey(0.0f, 0.0f);
+			RichCurvePunch->AddKey(0.112586f, 0.9976035f);
+			RichCurvePunch->AddKey(0.3120486f, -0.1720615f);
+			RichCurvePunch->AddKey(0.4316337f, 0.07030682f);
+			RichCurvePunch->AddKey(0.5524869f, -0.03141804f);
+			RichCurvePunch->AddKey(0.6549395f, 0.003909959f);
+			RichCurvePunch->AddKey(0.770987f, -0.009817753f);
+			RichCurvePunch->AddKey(0.8838775f, 0.001939224f);
+			RichCurvePunch->AddKey(1.0f, 0.0f);
+		}
+	}
 
-	FRichCurve* RichCurveShake = new FRichCurve();
-	RichCurveShake->AddKey(0.0f, 0.0f);
-	RichCurveShake->AddKey(0.25f, 1.f);
-	RichCurveShake->AddKey(0.75f, -1.f);
-	RichCurveShake->AddKey(1.f, 0.f);
-	CurveShake = NewObject<UCurveFloat>();
+	CurveShake = NewObject<UCurveFloat>(this);
 	TArray<FRichCurveEditInfo> ListShake = CurveShake->GetCurves();
-	ListShake.Add(FRichCurveEditInfo(RichCurveShake, TEXT("Shake")));
+	if(ListShake.Num() > 0)
+	{
+		ListShake[0].CurveName = TEXT("Shake");
+		if(FRichCurve* RichCurveShake = StaticCast<FRichCurve*>(ListShake[0].CurveToEdit))
+		{
+			RichCurveShake->AddKey(0.0f, 0.0f);
+			RichCurveShake->AddKey(0.25f, 1.f);
+			RichCurveShake->AddKey(0.75f, -1.f);
+			RichCurveShake->AddKey(1.f, 0.f);
+		}
+	}
 
 	DtActual = 0.f;
 	DtEstimated = -1.f;
@@ -644,7 +654,7 @@ UQTween* UQTweenEngineSubsystem::Options()
 	for (int32 j = 0; j <= MaxTweens; i++) {
 		if (j >= MaxTweens)
 		{
-			FString str = FString::Printf(TEXT("LeanTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the LeanTween class ex: LeanTween.init( %d );"), MaxTweens * 2);
+			FString str = FString::Printf(TEXT("QTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the QTween class ex: LeanTween.init( %d );"), MaxTweens * 2);
 			LogError(str);
 			return nullptr;
 		}
