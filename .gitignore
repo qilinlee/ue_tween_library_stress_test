@@ -8,3 +8,5 @@ TweenComparing/.idea/.idea.TweenComparing.dir/.idea/projectSettingsUpdater.xml
 TweenComparing/.idea/.idea.TweenComparing.dir/.idea/vcs.xml
 TweenComparing/.idea/.idea.TweenComparing.dir/.idea/workspace.xml
 TweenComparing/Plugins/.DS_Store
+*.user
+/TweenComparing/.idea
