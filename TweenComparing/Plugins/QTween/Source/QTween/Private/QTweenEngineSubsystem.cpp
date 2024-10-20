@@ -8,6 +8,7 @@
 #include "QTweenSequence.h"
 #include "Components/widget.h"
 #include "GameFramework/Actor.h"
+#include "Styling/UMGCoreStyle.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
@@ -28,7 +29,7 @@ void UQTweenEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
     Super::Initialize(Collection);
 
-	UQTween::InitEasingMethod();
+	FQTweenInstance::InitEasingMethod();
 
 	CurvePunch = NewObject<UCurveFloat>(this);
 	auto ListPunch = CurvePunch->GetCurves();
@@ -125,29 +126,36 @@ void UQTweenEngineSubsystem::Init(int32 maxSimultaneousTweens)
 void UQTweenEngineSubsystem::Init(int32 MaxSimultaneousTweens, int32 MaxSimultaneousSeqs)
 {
 	if (PoolTweens.Num() > 0 || HasAnyFlags(RF_ClassDefaultObject))
+	{
 		return;
+	}
 
 	TweenEmpty = NewObject<UACMTweenEmpty>(this);
 
 	MaxTweens = MaxSimultaneousTweens;
 	MaxSequences = MaxSimultaneousSeqs;
-
+	
 	PoolTweens.Reserve(MaxTweens);
+	TweensPtr.Reserve(MaxTweens);
 	TweensFinished.Reserve(MaxTweens);
 	TweensFinishedIds.Reserve(MaxTweens);
 
 	for (int32 idx = 0; idx < MaxTweens; ++idx)
 	{
-		PoolTweens.Add(NewObject<UQTween>(this));
-		PoolTweens[idx]->Reset();
+		FQTweenInstance& Instance = PoolTweens.AddDefaulted_GetRef();
+		TweensPtr.Add(MakeShareable(&Instance));
+		TweensPtr.Last()->ResetTween();
+		
 		TweensFinished.Add(-1);
 		TweensFinishedIds.Add(-1);
 	}
 
 	Sequences.Reserve(MaxSequences);
+	SequencesPtr.Reserve(MaxSequences);
 	for (int32 idx = 0; idx < MaxSequences; ++idx)
 	{
-		Sequences.Add(NewObject<UQTweenSequence>(this));
+		FQTweenSequence& Seq = Sequences.AddDefaulted_GetRef();
+		SequencesPtr.Add(MakeShareable(&Seq));
 	}
 }
 
@@ -156,8 +164,10 @@ int32 UQTweenEngineSubsystem::GetCountTweensRunning()
 	int32 count = 0;
 	for (int32 index = 0; index < MaxTweenSearch; ++index)
 	{
-		if (PoolTweens[index]->bToggle)
+		if (PoolTweens[index].bToggle)
+		{
 			++count;
+		}
 	}
 	return count;
 }
@@ -166,14 +176,11 @@ void UQTweenEngineSubsystem::Reset()
 {
 	for (int32 idx = 0; idx < PoolTweens.Num(); ++idx)
 	{
-		if (PoolTweens[idx] != nullptr)
-		{
-			PoolTweens[idx]->Reset();
-			PoolTweens[idx] = nullptr;
-		}
+		PoolTweens[idx].ResetTween();
 	}
 
 	PoolTweens.Empty();
+	TweensPtr.Empty();
 	//TweenEmpty = nullptr;
 }
 
@@ -184,6 +191,8 @@ void UQTweenEngineSubsystem::Update(float InElapsedTime)
 		return;
 	}
 
+	SCOPED_NAMED_EVENT(UQTweenEngineSubsystem_Update, FColor::Blue);
+
 	// make sure update is only called once per frame
 	Init();
 
@@ -192,45 +201,43 @@ void UQTweenEngineSubsystem::Update(float InElapsedTime)
 
 	MaxTweenReached = 0;
 	FinishedCnt = 0;
-	UQTween* Tween = nullptr;
+	
 	for (int32 i = 0; i <= MaxTweenSearch && i < MaxTweens; i++)
 	{
-		Tween = PoolTweens[i];
-		if (nullptr != Tween
-			&& Tween->IsValidLowLevel()
-			&& Tween->bToggle)
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (Tween.bToggle)
 		{
 			MaxTweenReached = i;
 
-			if (!UQTween::IsValid(Tween))
+			if (!FQTweenInstance::IsValid(&Tween))
 				RemoveTween(i);
 			else
 			{
-				if (Tween->UpdateInternal())
+				if (Tween.UpdateInternal())
 				{ // returns true if the Tween is finished with it's loop
 					TweensFinished[FinishedCnt] = i;
-					TweensFinishedIds[FinishedCnt] = PoolTweens[i]->GetUniqueID();
+					TweensFinishedIds[FinishedCnt] = Tween.GetUniqueID();
 					FinishedCnt++;
 				}
 			}
 		}
 	}
 
-	MaxTweenSearch = MaxTweenReached;
+	
 	FrameRendered = GFrameNumber;
 
-	for (int32 i = 0; i < FinishedCnt; i++) {
+	for (int32 i = 0; i < FinishedCnt; i++)
+	{
 		uint32 j = TweensFinished[i];
-		Tween = PoolTweens[j];
+		FQTweenInstance& Tween = PoolTweens[j];
 
-		if (nullptr != Tween && Tween->IsValidLowLevel()
-			&& Tween->GetUniqueID() == TweensFinishedIds[i])
+		if (Tween.GetUniqueID() == TweensFinishedIds[i])
 		{
-			if (Tween->bHasExtraOnCompletes
-				&& Tween->Owner.IsValid()
-				&& Tween->Optional.OnComplete.IsBound())
+			if (Tween.bHasExtraOnCompletes
+				&& Tween.Owner.IsValid()
+				&& Tween.OnComplete.IsBound())
 			{
-				Tween->Optional.OnComplete.Broadcast();
+				Tween.OnComplete.Broadcast();
 			}
 
 			RemoveTween(j);
@@ -241,7 +248,7 @@ void UQTweenEngineSubsystem::Update(float InElapsedTime)
 void UQTweenEngineSubsystem::RemoveTween(int Index, uint64 UniqueId)
 {
 	if (PoolTweens.IsValidIndex(Index)
-		&& PoolTweens[Index]->GetUniqueID() == UniqueId)
+		&& PoolTweens[Index].GetUniqueID() == UniqueId)
 	{
 		RemoveTween(Index);
 	}
@@ -254,21 +261,21 @@ void UQTweenEngineSubsystem::RemoveTween(int Index, bool bShouldReset)
 		return;
 	}
 
-	if (PoolTweens[Index]->bToggle)
+	if (PoolTweens[Index].bToggle)
 	{
-		UQTween* Tween = PoolTweens[Index];
-		Tween->Counter = -1;
-		//if (Tween->destroyOnComplete 
-		//	&& Tween->owner != nullptr 
-		//	&& Tween->owner->IsValidLowLevel()
-		//	&& Tween->owner != TweenEmpty)
+		FQTweenInstance& Tween = PoolTweens[Index];
+		Tween.Counter = -1;
+		//if (Tween.destroyOnComplete 
+		//	&& Tween.owner != nullptr 
+		//	&& Tween.owner->IsValidLowLevel()
+		//	&& Tween.owner != TweenEmpty)
 		//{
-		//	Tween->owner = nullptr;
+		//	Tween.owner = nullptr;
 		//}
 
 		if (bShouldReset)
 		{
-			Tween->Reset();
+			Tween.ResetTween();
 		}
 
 		StartSearch = Index;
@@ -289,12 +296,12 @@ void UQTweenEngineSubsystem::CancelAll(bool bCallComplete)
 	Init();
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		if (PoolTweens[i] != nullptr && PoolTweens[i]->Owner != nullptr
-			&& PoolTweens[i]->Owner->IsValidLowLevel())
+		if (PoolTweens[i].Owner != nullptr
+			&& PoolTweens[i].Owner->IsValidLowLevel())
 		{
-			if (bCallComplete && PoolTweens[i]->Optional.OnComplete.IsBound())
+			if (bCallComplete && PoolTweens[i].OnComplete.IsBound())
 			{
-				PoolTweens[i]->Optional.OnComplete.Broadcast();
+				PoolTweens[i].OnComplete.Broadcast();
 			}
 
 			RemoveTween(i);
@@ -312,19 +319,14 @@ void UQTweenEngineSubsystem::Cancel(const UObject* Obj, bool bCallOnComplete, EQ
 	Init();
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		UQTween* Tween = PoolTweens[i];
-		if (nullptr == Tween || !Tween->IsValidLowLevel())
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (MatchType == EQTweenAction::NONE || MatchType == Tween.Type)
 		{
-			continue;
-		}
-
-		if (MatchType == EQTweenAction::NONE || MatchType == Tween->Type)
-		{
-			if (Tween->bToggle && Tween->Owner == Obj)
+			if (Tween.bToggle && Tween.Owner == Obj)
 			{
-				if (bCallOnComplete && Tween->Optional.OnComplete.IsBound())
+				if (bCallOnComplete && Tween.OnComplete.IsBound())
 				{
-					Tween->Optional.OnComplete.Broadcast();
+					Tween.OnComplete.Broadcast();
 				}
 
 				RemoveTween(i);
@@ -343,28 +345,24 @@ void UQTweenEngineSubsystem::Cancel(const UObject* Obj, uint64 UniqueId, bool bC
 	Init();
 	
 	uint32 BackId = 0, BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
 
 	if (!PoolTweens.IsValidIndex(BackId))
 	{
 		return;
 	}
 	
-	UQTween* Tween = PoolTweens[BackId];
-	if (nullptr == Tween || !Tween->IsValidLowLevel())
-	{
-		return;
-	}
+	FQTweenInstance& Tween = PoolTweens[BackId];
 
-	if (Tween->Owner == nullptr
-		|| (Tween->Owner == Obj && Tween->Counter == BackCounter))
+	if (Tween.Owner == nullptr
+		|| (Tween.Owner == Obj && Tween.Counter == BackCounter))
 	{
-		if (bCallOnComplete && Tween->Optional.OnComplete.IsBound())
+		if (bCallOnComplete && Tween.OnComplete.IsBound())
 		{
-			Tween->Optional.OnComplete.Broadcast();
+			Tween.OnComplete.Broadcast();
 		}
 
-		RemoveTween((int32)BackId);
+		RemoveTween(static_cast<int32>(BackId));
 	}
 }
 
@@ -379,82 +377,81 @@ void UQTweenEngineSubsystem::Cancel(uint64 UniqueId, bool bCallOnComplete)
 	
 	uint32 BackId = 0;
 	uint32 BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
 
-	if ((int32)BackId > PoolTweens.Num() - 1)
+	if (static_cast<int32>(BackId) > PoolTweens.Num() - 1)
 	{ // sequence
-		int32 SequenceId = (int32)BackId - PoolTweens.Num();
-		UQTweenSequence* Seq = Sequences[SequenceId];
+		int32 SequenceId = static_cast<int32>(BackId) - PoolTweens.Num();
+		FQTweenSequence& Seq = Sequences[SequenceId];
 		for (int i = 0; i < MaxSequences; i++)
 		{
-			if (Seq->Current->Tween != nullptr)
+			if (Seq.Current->Tween != nullptr)
 			{
-				uint64 TweenId = Seq->Current->Tween->GetUniqueId();
-				int32 TweenIndex = (int32)(TweenId & 0xFFFF);
+				uint64 TweenId = Seq.Current->Tween->GetUniqueID();
+				int32 TweenIndex = static_cast<int32>(TweenId & 0xFFFF);
 				RemoveTween(TweenIndex);
 			}
 
-			if (Seq->Current->Previous == nullptr)
+			if (Seq.Current->Previous == nullptr)
 			{
 				break;
 			}
-			Seq->Current = Seq->Current->Previous;
+			Seq.Current = Seq.Current->Previous;
 		}
 	}
 	else
 	{ // Tween
-		if (PoolTweens[BackId]->Counter == BackCounter) 
+		if (PoolTweens[BackId].Counter == BackCounter) 
 		{
 			if (bCallOnComplete
-				&& PoolTweens[BackId]->Optional.OnComplete.IsBound())
+				&& PoolTweens[BackId].OnComplete.IsBound())
 			{
-				PoolTweens[BackId]->Optional.OnComplete.Broadcast();
+				PoolTweens[BackId].OnComplete.Broadcast();
 			}
 
-			RemoveTween((int)BackId);
+			RemoveTween(static_cast<int>(BackId));
 		}
 	}
 }
 
-UQTween* UQTweenEngineSubsystem::Tween(uint64 UniqueId)
+FQTweenHandle UQTweenEngineSubsystem::Tween(uint64 UniqueId)
 {
 	Init();
 
 	uint32 BackId = 0;
 	uint32 BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
-    if (PoolTweens.IsValidIndex(BackId)
-        && PoolTweens[BackId] != nullptr
-        && PoolTweens[BackId]->GetUniqueId() == UniqueId
-        && PoolTweens[BackId]->Counter == BackCounter)
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
+    if (TweensPtr.IsValidIndex(BackId)
+        && TweensPtr[BackId]->GetUniqueID() == UniqueId
+        && TweensPtr[BackId]->Counter == BackCounter)
     {
-        return PoolTweens[BackId];
+    	return FQTweenHandle(TweensPtr[BackId]);
     }
 
 	for (int32 i = 0; i <= MaxTweenSearch; i++) 
 	{
-		if (PoolTweens[i]->GetUniqueID() == UniqueId
-			&& PoolTweens[i]->Counter == BackCounter)
+		if (TweensPtr[i]->GetUniqueID() == UniqueId
+			&& TweensPtr[i]->Counter == BackCounter)
 		{
-			return PoolTweens[i];
+			return FQTweenHandle(TweensPtr[i]);
 		}
 	}
 
-	return nullptr;
+	return FQTweenHandle::Invalid;
 }
 
-TArray<UQTween*> UQTweenEngineSubsystem::Tweens(UObject* Obj)
+TArray<FQTweenHandle> UQTweenEngineSubsystem::Tweens(UObject* Obj)
 {
-	TArray<UQTween*> result;
+	TArray<FQTweenHandle> result;
 
 	if (nullptr != Obj && Obj->IsValidLowLevel())
 	{
 		for (int32 i = 0; i < MaxTweenSearch; ++i)
 		{
-			if (PoolTweens[i] != nullptr && PoolTweens[i]->bToggle
-				&& PoolTweens[i]->Owner == Obj)
+			if (TweensPtr[i]->bToggle
+				&& TweensPtr[i]->Owner == Obj)
 			{
-				result.Add(PoolTweens[i]);
+				result.Add(FQTweenHandle(TweensPtr[i]));
 			}
 		}
 	}
@@ -465,12 +462,11 @@ TArray<UQTween*> UQTweenEngineSubsystem::Tweens(UObject* Obj)
 void UQTweenEngineSubsystem::Pause(uint64 UniqueId)
 {
 	uint32 BackId = 0, BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
-	if (PoolTweens.IsValidIndex(BackId) 
-		&& PoolTweens[BackId] != nullptr 
-		&& PoolTweens[BackId]->Counter == BackCounter)
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
+	if (PoolTweens.IsValidIndex(BackId)
+		&& PoolTweens[BackId].Counter == BackCounter)
 	{
-		PoolTweens[BackId]->Pause();
+		PoolTweens[BackId].Pause();
 	}
 }
 
@@ -483,11 +479,10 @@ void UQTweenEngineSubsystem::Pause(UObject* Obj)
 
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		UQTween* Tween = PoolTweens[i];
-		if (nullptr != Tween && Tween->IsValidLowLevel()
-			&& Tween->Owner == Obj)
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (Tween.bToggle && Tween.Owner == Obj)
 		{
-			Tween->Pause();
+			Tween.Pause();
 		}
 	}
 }
@@ -498,7 +493,7 @@ void UQTweenEngineSubsystem::PauseAll()
 
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		PoolTweens[i]->Pause();
+		PoolTweens[i].Pause();
 	}
 }
 
@@ -508,10 +503,8 @@ bool UQTweenEngineSubsystem::IsPaused(UObject* Obj)
 	{
 		for (int32 i = 0; i < MaxTweenSearch; ++i)
 		{
-			UQTween* Tween = PoolTweens[i];
-			if (nullptr != Tween
-				&& Tween->IsValidLowLevel()
-				&& Tween->Direction == 0.f)
+			FQTweenInstance& Tween = PoolTweens[i];
+			if (Tween.Direction == 0.f)
 			{
 				return true;
 			}
@@ -522,11 +515,9 @@ bool UQTweenEngineSubsystem::IsPaused(UObject* Obj)
 
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		UQTween* Tween = PoolTweens[i];
-		if (nullptr != Tween
-			&& Tween->IsValidLowLevel()
-			&& Tween->Owner == Obj
-			&& Tween->Direction == 0.f)
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (Tween.Owner == Obj
+			&& Tween.Direction == 0.f)
 		{
 			return true;
 		}
@@ -538,16 +529,14 @@ bool UQTweenEngineSubsystem::IsPaused(UObject* Obj)
 bool UQTweenEngineSubsystem::IsPuased(uint64 UniqueId)
 {
 	uint32 BackId = 0, BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
-	if ((int32)BackId >= MaxTweens || !PoolTweens.IsValidIndex(BackId))
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
+	if (static_cast<int32>(BackId) >= MaxTweens || !PoolTweens.IsValidIndex(BackId))
 	{
 		return false;
 	}
 
-	UQTween* Tween = PoolTweens[BackId];
-	if (nullptr != Tween
-		&& Tween->IsValidLowLevel()
-		&& Tween->Direction == 0.f)
+	FQTweenInstance& Tween = PoolTweens[BackId];
+	if (Tween.Direction == 0.f)
 	{
 		return true;
 	}
@@ -560,19 +549,18 @@ void UQTweenEngineSubsystem::ResumeAll()
 	Init();
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		PoolTweens[i]->Resume();
+		PoolTweens[i].Resume();
 	}
 }
 
 void UQTweenEngineSubsystem::Resume(uint64 UniqueId)
 {
 	uint32 BackId = 0, BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
 	if (PoolTweens.IsValidIndex(BackId) 
-		&& PoolTweens[BackId] != nullptr 
-		&& PoolTweens[BackId]->Counter == BackCounter)
+		&& PoolTweens[BackId].Counter == BackCounter)
 	{
-		PoolTweens[BackId]->Resume();
+		PoolTweens[BackId].Resume();
 	}
 }
 
@@ -583,11 +571,10 @@ void UQTweenEngineSubsystem::Resume(UObject* obj)
 
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		UQTween* Tween = PoolTweens[i];
-		if (nullptr != Tween && Tween->IsValidLowLevel()
-			&& Tween->Owner == obj)
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (Tween.Owner == obj)
 		{
-			Tween->Resume();
+			Tween.Resume();
 		}
 	}
 }
@@ -598,10 +585,8 @@ bool UQTweenEngineSubsystem::IsTweening(UObject* Obj)
 	{
 		for (int32 i = 0; i < MaxTweenSearch; ++i)
 		{
-			UQTween* Tween = PoolTweens[i];
-			if (nullptr != Tween
-				&& Tween->IsValidLowLevel()
-				&& Tween->bToggle)
+			FQTweenInstance& Tween = PoolTweens[i];
+			if (Tween.bToggle)
 			{
 				return true;
 			}
@@ -612,11 +597,9 @@ bool UQTweenEngineSubsystem::IsTweening(UObject* Obj)
 
 	for (int32 i = 0; i <= MaxTweenSearch; ++i)
 	{
-		UQTween* Tween = PoolTweens[i];
-		if (nullptr != Tween
-			&& Tween->IsValidLowLevel()
-			&& Tween->Owner == Obj
-			&& Tween->bToggle)
+		FQTweenInstance& Tween = PoolTweens[i];
+		if (Tween.Owner == Obj
+			&& Tween.bToggle)
 		{
 			return true;
 		}
@@ -628,16 +611,14 @@ bool UQTweenEngineSubsystem::IsTweening(UObject* Obj)
 bool UQTweenEngineSubsystem::IsTweening(uint64 UniqueId)
 {
 	uint32 BackId = 0, BackCounter = 0;
-	BackUniqueId(UniqueId, BackId, BackCounter);
-	if ((int32)BackId >= MaxTweens || !PoolTweens.IsValidIndex(BackId))
+	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
+	if (static_cast<int32>(BackId) >= MaxTweens || !PoolTweens.IsValidIndex(BackId))
 	{
 		return false;
 	}
 
-	UQTween* Tween = PoolTweens[BackId];
-	if (nullptr != Tween
-		&& Tween->IsValidLowLevel()
-		&& Tween->bToggle)
+	FQTweenInstance& Tween = PoolTweens[BackId];
+	if (Tween.bToggle)
 	{
 		return true;
 	}
@@ -645,16 +626,20 @@ bool UQTweenEngineSubsystem::IsTweening(uint64 UniqueId)
 	return false;
 }
 
-UQTween* UQTweenEngineSubsystem::Options()
+TSharedPtr<FQTweenInstance> UQTweenEngineSubsystem::Options()
 {
 	Init();
 
 	bool bFound = false;
 	int32 i = StartSearch;
-	for (int32 j = 0; j <= MaxTweens; i++) {
+	for (int32 j = 0; j <= MaxTweens; i++)
+	{
 		if (j >= MaxTweens)
 		{
-			FString str = FString::Printf(TEXT("QTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the QTween class ex: LeanTween.init( %d );"), MaxTweens * 2);
+			FString str = FString::Printf(
+				TEXT(
+					"QTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the QTween class ex: LeanTween.init( %d );"),
+				MaxTweens * 2);
 			LogError(str);
 			return nullptr;
 		}
@@ -662,7 +647,7 @@ UQTween* UQTweenEngineSubsystem::Options()
 		if (i >= MaxTweens)
 			i = 0;
 
-		if (!PoolTweens[i]->bToggle)
+		if (!PoolTweens[i].bToggle)
 		{
 			if (i + 1 > MaxTweenSearch && i + 1 < MaxTweens)
 				MaxTweenSearch = i + 1;
@@ -677,13 +662,40 @@ UQTween* UQTweenEngineSubsystem::Options()
 	if (bFound == false)
 	{
 		LogError(TEXT("no available Tween found!"));
+		return nullptr;
 	}
 
 	IncreaseGlobalCounter();
 
-	PoolTweens[i]->SetId((uint32)i, GlobalCounter);
+	PoolTweens[i].SetID(static_cast<uint32>(i), GlobalCounter);
 
-	return PoolTweens[i];
+	return TweensPtr[i];
+}
+
+TSharedPtr<FQTweenInstance> UQTweenEngineSubsystem::GetTween(const FQTweenHandle& Tween)
+{
+	Init();
+
+	uint32 BackId = 0;
+	uint32 BackCounter = 0;
+	FQTweenBase::BreakUniqueID(Tween.UniqueID, BackId, BackCounter);
+	if (TweensPtr.IsValidIndex(BackId)
+		&& TweensPtr[BackId]->GetUniqueID() == Tween.UniqueID
+		&& TweensPtr[BackId]->Counter == BackCounter)
+	{
+		return TweensPtr[BackId];
+	}
+
+	for (int32 i = 0; i <= MaxTweenSearch; i++) 
+	{
+		if (TweensPtr[i]->GetUniqueID() == Tween.UniqueID
+			&& TweensPtr[i]->Counter == BackCounter)
+		{
+			return TweensPtr[i];
+		}
+	}
+
+	return nullptr;
 }
 
 void UQTweenEngineSubsystem::IncreaseGlobalCounter()
@@ -695,54 +707,61 @@ void UQTweenEngineSubsystem::IncreaseGlobalCounter()
 	}
 }
 
-UQTween* UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& To, float Time, UQTween* Tween)
+FQTweenHandle UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& To, float Time, TSharedPtr<FQTweenInstance> Tween)
 {
 	Init(MaxTweens);
-	if (nullptr == Obj || !Obj->IsValidLowLevel())
-		return nullptr;
+	if (nullptr == Obj || !IsValid(Obj) || !Obj->IsValidLowLevel())
+	{
+		return FQTweenHandle::Invalid;
+	}
 
-	if (nullptr == Tween || !Tween->IsValidLowLevel())
-		return nullptr;
+	if(Tween.IsValid())
+	{
+		Tween->Owner = Obj;
+		Tween->bToggle = true;
+		Tween->To = To;
+		Tween->Time = Time;
 
-	Tween->bToggle = true;
-	Tween->Owner = Obj;
-	Tween->To = To;
-	Tween->Time = Time;
+		if (Time <= 0.f)
+		{
+			Tween->UpdateInternal();
+		}
 
-	if (Tween->Time <= 0.f)
-		Tween->UpdateInternal();
+		return FQTweenHandle(Tween);
+	}
 
-	return Tween;
+	return FQTweenHandle::Invalid;
 }
 
-UQTween* UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& To, float Time, UQTween& Tween)
+FQTweenHandle UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& To, float Time, const FQTweenHandle& Tween)
 {
-	return PushNewTween(Obj, To, Time, &Tween);
+	TSharedPtr<FQTweenInstance> TweenInstance = UQTweenEngineSubsystem::GetTween(Tween);
+	return PushNewTween(Obj, To, Time, TweenInstance);
 }
 
-UQTweenSequence* UQTweenEngineSubsystem::Sequence(bool initSeq /*= true*/)
+TSharedPtr<FQTweenSequence> UQTweenEngineSubsystem::Sequence(bool initSeq /*= true*/)
 {
 	Init(MaxTweens);
 
 	for (int i = 0; i < Sequences.Num(); i++)
 	{
-		if (Sequences[i]->Tween == nullptr || !Sequences[i]->Tween->bToggle)
+		if (Sequences[i].Tween == nullptr || !Sequences[i].Tween->bToggle)
 		{
-			if (Sequences[i]->bToggle == false)
+			if (Sequences[i].bToggle == false)
 			{
-				UQTweenSequence* Seq = Sequences[i];
+				FQTweenSequence& Seq = Sequences[i];
 				if (initSeq)
 				{
-					Seq->Init((uint32)(i + PoolTweens.Num()), GlobalCounter);
+					Seq.Init(static_cast<uint32>(i + PoolTweens.Num()), GlobalCounter);
 
 					IncreaseGlobalCounter();
 				}
 				else
 				{
-					Seq->Reset();
+					Seq.Reset();
 				}
 
-				return Seq;
+				return SequencesPtr[i];
 			}
 		}
 	}
@@ -750,26 +769,26 @@ UQTweenSequence* UQTweenEngineSubsystem::Sequence(bool initSeq /*= true*/)
 	return nullptr;
 }
 
-UQTween* UQTweenEngineSubsystem::Alpha(UObject* obj, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Alpha(UObject* obj, float to, float time)
 {
-	UQTween* t = Options()->SetAlpha();
+	TSharedPtr<FQTweenInstance> t = Options()->SetAlpha();
 	return PushNewTween(obj, FVector(to, 0, 0), time, t);
 }
 
-UQTween* UQTweenEngineSubsystem::Colour(UObject* obj, const FLinearColor& to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Colour(UObject* obj, const FLinearColor& to, float time)
 {
-	UQTween* Tween = Options()->SetColor()
+	TSharedPtr<FQTweenInstance> Tween = Options()->SetColor()
 		->SetPoint(FVector(to.R, to.G, to.B));
 	return PushNewTween(obj, FVector(1.0f, to.A, 0.f), time, Tween);
 }
 
-UQTween* UQTweenEngineSubsystem::Move(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Move(UObject* obj, FVector to, float time)
 {
-	UQTween* Tween = Options()->SetMove();
+	TSharedPtr<FQTweenInstance> Tween = Options()->SetMove();
 	return PushNewTween(obj, to, time, Tween);
 }
 
-UQTween* UQTweenEngineSubsystem::MoveBy(UObject* obj, FVector delta, float time)
+FQTweenHandle UQTweenEngineSubsystem::MoveBy(UObject* obj, FVector delta, float time)
 {
 	if (obj->IsA(AActor::StaticClass()))
 	{
@@ -790,59 +809,47 @@ UQTween* UQTweenEngineSubsystem::MoveBy(UObject* obj, FVector delta, float time)
 	return Move(obj, delta, time);
 }
 
-UQTween* UQTweenEngineSubsystem::Rotate(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Rotate(UObject* obj, FVector to, float time)
 {
 	return PushNewTween(obj, to, time, Options()->SetRotate());
 }
 
 
-UQTween* UQTweenEngineSubsystem::Scale(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Scale(UObject* obj, FVector to, float time)
 {
 	return PushNewTween(obj, to, time, Options()->SetScale());
 }
 
-UQTween* UQTweenEngineSubsystem::TweenFloat(float from, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenFloat(float from, float to, float time)
 {
 	return TweenFloatFromTo(TweenEmpty, from, to, time);
 }
 
-UQTween* UQTweenEngineSubsystem::TweenFloatFromTo(UObject* obj, float from, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenFloatFromTo(UObject* obj, float from, float to, float time)
 {
 	return TweenVector(obj, FVector(from, 0, 0), FVector(to, 0, 0), time);
 }
 
-UQTween* UQTweenEngineSubsystem::TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time)
 {
 	return TweenVector(obj, FVector(from, 0), FVector(to, 0), time);
 }
 
-UQTween* UQTweenEngineSubsystem::TweenVector(UObject* obj, FVector from, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenVector(UObject* obj, FVector from, FVector to, float time)
 {
-	UQTween* Tween = Options()->SetCallback()
+	TSharedPtr<FQTweenInstance> Tween = Options()->SetCallback()
 		->SetFrom(from);
 	return PushNewTween(obj, to, time, Tween);
 
 }
 
-UQTween* UQTweenEngineSubsystem::TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time)
 {
-	UQTween* Tween = Options()->SetCallbackColor()
+	TSharedPtr<FQTweenInstance> Tween = Options()->SetCallbackColor()
 		->SetPoint(FVector(to.R, to.G, to.B))
 		->SetFromColor(from)
 		->SetHasInitialized(false);
 	return PushNewTween(obj, FVector(1, to.A, 0.f), time, Tween);
-}
-
-float UQTweenEngineSubsystem::TweenOnCurve(UQTween* Tween, float ratioPassed)
-{
-	float f = Tween->Optional.AnimCurve->GetFloatValue(ratioPassed);
-	return Tween->From.X + Tween->Diff.X * f;
-}
-
-void UQTweenEngineSubsystem::TweenOnCurve(UQTween* Tween, float ratioPassed, FVector& outResult)
-{
-	float f = Tween->Optional.AnimCurve->GetFloatValue(ratioPassed);
-	outResult = Tween->From + Tween->Diff * f;
 }
 
 //float UQTweenEngineSubsystem::DoTweenAsset(UObject* owner, const UACMTweenAsset* asset, bool forward, float delay /*= 0.f*/)
@@ -854,7 +861,7 @@ void UQTweenEngineSubsystem::TweenOnCurve(UQTween* Tween, float ratioPassed, FVe
 //	for (int32 idx = 0; idx < asset->Tweens.Num(); ++idx)
 //	{
 //		const FACMTweenInfo& info = asset->Tweens[idx];
-//		UQTween* Tween = nullptr;
+//		FQTweenHandle Tween = nullptr;
 //
 //		const FVector& from = forward ? info.StartValue : info.EndValue;
 //		const FVector& to = forward ? info.EndValue : info.StartValue;
@@ -929,19 +936,11 @@ float UQTweenEngineSubsystem::ClosestRot(float From, float To)
 	{
 		return To;
 	}
-	else
-	{
-		return MinusDiff < PlusDiff ? MinusWhole : PlusWhole;
-	}
+
+	return MinusDiff < PlusDiff ? MinusWhole : PlusWhole;
 }
 
-void UQTweenEngineSubsystem::BackUniqueId(uint64 UniqueId, uint32& Id, uint32& Counter)
-{
-	Id = (uint32)(UniqueId & 0xFFFF);
-	Counter = (uint32)(UniqueId >> 16);
-}
-
-void UQTweenEngineSubsystem::LogError(FString error)
+void UQTweenEngineSubsystem::LogError(FString error) const
 {
 	if (ThrowErrors)
 	{

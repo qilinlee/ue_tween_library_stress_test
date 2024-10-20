@@ -3,55 +3,38 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "QTweenSequence.generated.h"
+#include "QTween.h"
 
-class UQTween;
 
 /**
- * UQTweenSequence
+ * FQTweenSequence
  */
-UCLASS()
-class QTWEEN_API UQTweenSequence : public UObject
-{	
-	GENERATED_UCLASS_BODY()
-public:
-	UPROPERTY()
-	UQTweenSequence* Previous;
-
-	UPROPERTY()
-	UQTweenSequence* Current;
+class QTWEEN_API FQTweenSequence : public FQTweenBase
+{
+	friend class UQTweenEngineSubsystem;
+protected:
+	TSharedPtr<FQTweenSequence> Previous;
+	TSharedPtr<FQTweenSequence> Current;
+	TSharedPtr<FQTweenInstance> Tween;
 	
-	UPROPERTY()
-	UQTween* Tween;
-	
-	UPROPERTY()
 	float TotalDelay;
-	
-	UPROPERTY()
 	float TimeScale;
 	
-	UPROPERTY()
-	uint32 Counter;
-	
-	UPROPERTY()
 	bool bToggle;
 private:
 	int32 DebugIter;
-	uint32 Id;
 public:
-	uint64 GetId() const;
+	FQTweenSequence();
+	
 	void Reset();
 	void Init(uint32 id, uint32 GlobalCounter);
-	UQTweenSequence* Append(float Delay) const;
-	UQTweenSequence* Append(UQTween* Tween);
-	UQTweenSequence* Insert(UQTween* Tween);
-	UQTweenSequence* SetScale(float Scale);
-	UQTweenSequence* Reverse();
+	TSharedPtr<FQTweenSequence> Append(float Delay) const;
+	TSharedPtr<FQTweenSequence> Append(TSharedPtr<FQTweenInstance> Tween);
+	TSharedPtr<FQTweenSequence> Insert(TSharedPtr<FQTweenInstance> Tween);
+	TSharedPtr<FQTweenSequence> SetScale(float Scale);
+	TSharedPtr<FQTweenSequence> Reverse();
 private:
-	UQTweenSequence* AddOn();
+	TSharedPtr<FQTweenSequence> AddOn();
 	float AddPreviousDelays() const;
-	void SetScaleRecursive(UQTweenSequence* Seq, float TimeScale, int Count);
-	
-	
+	void SetScaleRecursive(TSharedPtr<FQTweenSequence> Seq, float TimeScale, int Count);
 };

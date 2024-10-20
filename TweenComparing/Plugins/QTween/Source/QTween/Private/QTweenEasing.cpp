@@ -10,13 +10,13 @@ namespace QTween
     namespace Easing
     {
         FLinearEasing FLinearEasing::Linear;
-        FQuadraticEasing FQuadraticEasing::Quard;
+        FQuadraticEasing FQuadraticEasing::Quad;
         FCubicInEasing FCubicInEasing::Cubic;
         FQuarticEasing FQuarticEasing::Quart;
         FQuinticEasing FQuinticEasing::Quintic;
         FSinEasing FSinEasing::Sin;
         FExponentialEasing FExponentialEasing::Exponential;
-        FCircularInEasing FCircularInEasing::Circluar;
+        FCircularInEasing FCircularInEasing::Circular;
         FBounceEasing FBounceEasing::Bounce;
         FElasticEasing FElasticEasing::Elastic;
         FBackEasing FBackEasing::Back;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "Math/UnrealMathUtility.h"
 #include "QTweenEasing.generated.h"
 
@@ -36,9 +35,10 @@ enum class EQTweenEasingFunc : uint8
 class QTWEEN_API IQTweenEasing
 {
 public:
-    virtual float EaseIn(float fractor, float start, float end) = 0;
-    virtual float EaseOut(float fractor, float start, float end) = 0;
-    virtual float EaseInOut(float fractor, float start, float end) = 0;
+    virtual ~IQTweenEasing() = default;
+    virtual float EaseIn(float Factor, float Start, float End) = 0;
+    virtual float EaseOut(float Factor, float Start, float End) = 0;
+    virtual float EaseInOut(float Factor, float Start, float End) = 0;
 };
 
 namespace QTween
@@ -50,52 +50,52 @@ namespace QTween
         {
         public:
             static FLinearEasing Linear;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
 
         private:
-            float Evaluate(float fractor, float start, float end)
+            static float Evaluate(float Factor, float Start, float End)
             {
-                return (end - start) * fractor + start;
+                return (End - Start) * Factor + Start;
             }
         };
 
         class FQuadraticEasing : public IQTweenEasing
         {
         public:
-            static FQuadraticEasing Quard;
-            virtual float EaseIn(float fractor, float start, float end) final
+            static FQuadraticEasing Quad;
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return (end - start) * fractor * fractor + start;
+                return (End - Start) * Factor * Factor + Start;
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return (-(end - start)) * fractor * (fractor - 2) + start;
+                return (-(End - Start)) * Factor * (Factor - 2) + Start;
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1)
+                Factor *= 2;
+                if (Factor < 1)
                 {
-                    return (((end - start) / 2) * fractor * fractor + start);
+                    return (((End - Start) / 2) * Factor * Factor + Start);
                 }
 
-                fractor -= 1;
-                return ((-(end - start) / 2) * (fractor * (fractor - 2) - 1) + start);
+                Factor -= 1;
+                return ((-(End - Start) / 2) * (Factor * (Factor - 2) - 1) + Start);
             }
         };
 
@@ -103,24 +103,24 @@ namespace QTween
         {
         public:
             static FCubicInEasing Cubic;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return ((end - start) * fractor * fractor * fractor + start);
+                return ((End - Start) * Factor * Factor * Factor + Start);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return ((end - start) * (fractor * fractor * fractor + 1) + start);
+                return ((End - Start) * (Factor * Factor * Factor + 1) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1) {
-                    return (((end - start) / 2) * fractor * fractor * fractor + start);
+                Factor *= 2;
+                if (Factor < 1) {
+                    return (((End - Start) / 2) * Factor * Factor * Factor + Start);
                 }
-                fractor -= 2;
-                return (((end - start) / 2) * (fractor * fractor * fractor + 2) + start);
+                Factor -= 2;
+                return (((End - Start) / 2) * (Factor * Factor * Factor + 2) + Start);
             }
         };
 
@@ -129,25 +129,25 @@ namespace QTween
         public:
             static FQuarticEasing Quart;
 
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return ((end - start) * fractor * fractor * fractor * fractor + start);
+                return ((End - Start) * Factor * Factor * Factor * Factor + Start);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                fractor -= 1;
-                return (-(end - start) * (fractor * fractor * fractor * fractor - 1) + start);
+                Factor -= 1;
+                return (-(End - Start) * (Factor * Factor * Factor * Factor - 1) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1) {
-                    return (((end - start) / 2) * (fractor * fractor * fractor * fractor) + start);
+                Factor *= 2;
+                if (Factor < 1) {
+                    return (((End - Start) / 2) * (Factor * Factor * Factor * Factor) + Start);
                 }
-                fractor -= 2;
-                return ((-(end - start) / 2) * (fractor * fractor * fractor * fractor - 2) + start);
+                Factor -= 2;
+                return ((-(End - Start) / 2) * (Factor * Factor * Factor * Factor - 2) + Start);
             }
         };
 
@@ -155,27 +155,27 @@ namespace QTween
         {
         public:
             static FQuinticEasing Quintic;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return ((end - start) * fractor * fractor * fractor * fractor * fractor + start);
+                return ((End - Start) * Factor * Factor * Factor * Factor * Factor + Start);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                fractor--;
-                return ((end - start) * (fractor * fractor * fractor * fractor * fractor + 1) + start);
+                Factor--;
+                return ((End - Start) * (Factor * Factor * Factor * Factor * Factor + 1) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1)
+                Factor *= 2;
+                if (Factor < 1)
                 {
-                    return (((end - start) / 2) * (fractor * fractor * fractor * fractor * fractor) + start);
+                    return (((End - Start) / 2) * (Factor * Factor * Factor * Factor * Factor) + Start);
                 }
 
-                fractor -= 2;
-                return (((end - start) / 2) * (fractor * fractor * fractor * fractor * fractor + 2) + start);
+                Factor -= 2;
+                return (((End - Start) / 2) * (Factor * Factor * Factor * Factor * Factor + 2) + Start);
             }
         };
 
@@ -183,19 +183,19 @@ namespace QTween
         {
         public:
             static FSinEasing Sin;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return (-(end - start) * FMath::Cos(fractor * (PI) / 2) + (end - start) + start);
+                return (-(End - Start) * FMath::Cos(Factor * (PI) / 2) + (End - Start) + Start);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return ((end - start) * FMath::Sin(fractor * (PI) / 2) + start);
+                return ((End - Start) * FMath::Sin(Factor * (PI) / 2) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                return ((-(end - start) / 2) * (FMath::Cos(fractor * (PI)) - 1) + start);
+                return ((-(End - Start) / 2) * (FMath::Cos(Factor * (PI)) - 1) + Start);
             }
         };
 
@@ -203,49 +203,49 @@ namespace QTween
         {
         public:
             static FExponentialEasing Exponential;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return ((end - start) * FMath::Pow(2, 10 * (fractor - 1)) + start);
+                return ((End - Start) * FMath::Pow(2, 10 * (Factor - 1)) + Start);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return ((end - start) * (-FMath::Pow(2, -10 * fractor) + 1) + start);
+                return ((End - Start) * (-FMath::Pow(2, -10 * Factor) + 1) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1) {
-                    return (((end - start) / 2) * FMath::Pow(2, 10 * (fractor - 1)) + start);
+                Factor *= 2;
+                if (Factor < 1) {
+                    return (((End - Start) / 2) * FMath::Pow(2, 10 * (Factor - 1)) + Start);
                 }
-                --fractor;
-                return (((end - start) / 2) * (-FMath::Pow(2, -10 * fractor) + 2) + start);
+                --Factor;
+                return (((End - Start) / 2) * (-FMath::Pow(2, -10 * Factor) + 2) + Start);
             }
         };
 
         class FCircularInEasing : public IQTweenEasing
         {
         public:
-            static FCircularInEasing Circluar;
-            virtual float EaseIn(float fractor, float start, float end) final
+            static FCircularInEasing Circular;
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return (-(end - start) * (FMath::Sqrt(1 - fractor * fractor) - 1) + start);
+                return (-(End - Start) * (FMath::Sqrt(1 - Factor * Factor) - 1) + Start);
             }
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                return ((end - start) * (FMath::Sqrt(1 - fractor * fractor)) + start);
+                return ((End - Start) * (FMath::Sqrt(1 - Factor * Factor)) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                fractor *= 2;
-                if (fractor < 1) {
-                    return ((-(end - start) / 2) * (FMath::Sqrt(1 - fractor * fractor) - 1) + start);
+                Factor *= 2;
+                if (Factor < 1) {
+                    return ((-(End - Start) / 2) * (FMath::Sqrt(1 - Factor * Factor) - 1) + Start);
                 }
 
-                fractor -= 2;
-                return (((end - start) / 2) * (FMath::Sqrt(1 - fractor * fractor) + 1) + start);
+                Factor -= 2;
+                return (((End - Start) / 2) * (FMath::Sqrt(1 - Factor * Factor) + 1) + Start);
             }
         };
 
@@ -253,41 +253,41 @@ namespace QTween
         {
         public:
             static FBounceEasing Bounce;
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                return (end - start) - EaseOut((1 - fractor), 0.f, end) + start;;
+                return (End - Start) - EaseOut((1 - Factor), 0.f, End) + Start;;
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                float c = end - start;
-                if (fractor < (1 / 2.75f))
+                float c = End - Start;
+                if (Factor < (1 / 2.75f))
                 {
-                    return (c * (7.5625f * fractor * fractor) + start);
+                    return (c * (7.5625f * Factor * Factor) + Start);
                 }
-                else if (fractor < (2.0f / 2.75f))
+                else if (Factor < (2.0f / 2.75f))
                 {
-                    float postFix = fractor -= (1.5f / 2.75f);
-                    return (c * (7.5625f * (postFix)*fractor + .75f) + start);
+                    float postFix = Factor -= (1.5f / 2.75f);
+                    return (c * (7.5625f * (postFix)*Factor + .75f) + Start);
                 }
-                else if (fractor < (2.5f / 2.75f))
+                else if (Factor < (2.5f / 2.75f))
                 {
-                    float postFix = fractor -= (2.25f / 2.75f);
-                    return (c * (7.5625f * (postFix)*fractor + .9375f) + start);
+                    float postFix = Factor -= (2.25f / 2.75f);
+                    return (c * (7.5625f * (postFix)*Factor + .9375f) + Start);
                 }
                 else
                 {
-                    float postFix = fractor -= (2.625f / 2.75f);
-                    return (c * (7.5625f * (postFix)*fractor + .984375f) + start);
+                    float postFix = Factor -= (2.625f / 2.75f);
+                    return (c * (7.5625f * (postFix)*Factor + .984375f) + Start);
                 }
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                if (fractor < 0.5f)
-                    return (EaseIn(fractor * 2, 0.f, end) * .5f + start);
+                if (Factor < 0.5f)
+                    return (EaseIn(Factor * 2, 0.f, End) * .5f + Start);
                 else
-                    return (EaseOut((fractor * 2 - 1), 0.f, end) * .5f + (end - start) * .5f + start);
+                    return (EaseOut((Factor * 2 - 1), 0.f, End) * .5f + (End - Start) * .5f + Start);
             }
         };
 
@@ -298,22 +298,22 @@ namespace QTween
 
             FElasticEasing() : overshoot(1.f), period(0.3f) {}
 
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                if (fractor <= 0.0001f)
-                    return start;
+                if (Factor <= 0.0001f)
+                    return Start;
 
-                if (fractor >= 0.9999f)
-                    return end;
+                if (Factor >= 0.9999f)
+                    return End;
 
                 float p = period;
                 float a = 0.f;
                 float s = 0.f;
-                float d = end - start;
+                float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
                 {
-                    a = end - start;
+                    a = End - Start;
                     s = p / 4.f;
                 }
                 else
@@ -322,64 +322,64 @@ namespace QTween
                 }
 
                 float over = overshoot;
-                if (overshoot > 1.f && fractor > 0.6f)
-                    over = 1.f + (1.f - fractor) / 0.4f * (overshoot - 1.f);
+                if (overshoot > 1.f && Factor > 0.6f)
+                    over = 1.f + (1.f - Factor) / 0.4f * (overshoot - 1.f);
 
-                fractor -= 1;
+                Factor -= 1;
 
-                float postFix = a * FMath::Pow(2, 10 * fractor);
-                float sine = FMath::Sin((fractor - s) * (2 * (PI)) / p);
-                return (start - (postFix * sine) * over);
+                float postFix = a * FMath::Pow(2, 10 * Factor);
+                float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
+                return (Start - (postFix * sine) * over);
             }
 
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                if (fractor <= 0.0001f)
-                    return start;
+                if (Factor <= 0.0001f)
+                    return Start;
 
-                if (fractor >= 0.9999f)
-                    return end;
+                if (Factor >= 0.9999f)
+                    return End;
 
                 float p = period;
                 float a = 0.f;
                 float s = 0.f;
-                float d = end - start;
+                float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
                 {
-                    a = end - start;
+                    a = End - Start;
                     s = p / 4.f;
                 }
                 else
                     s = p / (2.f * (PI)*FMath::FastAsin(d / a));
 
                 float over = overshoot;
-                if (overshoot > 1.f && fractor < 0.4f)
-                    over = 1.f + (fractor / 0.4f * (overshoot - 1.f));
+                if (overshoot > 1.f && Factor < 0.4f)
+                    over = 1.f + (Factor / 0.4f * (overshoot - 1.f));
 
-                float postFix = a * FMath::Pow(2, -10 * fractor);
-                float sine = FMath::Sin((fractor - s) * (2 * (PI)) / p);
+                float postFix = a * FMath::Pow(2, -10 * Factor);
+                float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
 
-                return (postFix * sine) * over + end;
+                return (postFix * sine) * over + End;
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                if (fractor <= 0.0001f)
-                    return start;
+                if (Factor <= 0.0001f)
+                    return Start;
 
-                if (fractor >= 0.9999f)
-                    return end;
+                if (Factor >= 0.9999f)
+                    return End;
 
-                fractor *= 2;
+                Factor *= 2;
                 float p = period;
                 float a = 0.f;
                 float s = 0.f;
-                float d = end - start;
+                float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
                 {
-                    a = end - start;
+                    a = End - Start;
                     s = p / 4.f;
                 }
                 else
@@ -388,24 +388,24 @@ namespace QTween
                 float over = overshoot;
                 if (overshoot > 1.f)
                 {
-                    if (fractor < 0.2f)
-                        over = 1.f + (fractor / 0.2f * (overshoot - 1.f));
-                    else if (fractor > 0.8f)
-                        over = 1.f + ((1 - fractor) / 0.2f * (overshoot - 1.f));
+                    if (Factor < 0.2f)
+                        over = 1.f + (Factor / 0.2f * (overshoot - 1.f));
+                    else if (Factor > 0.8f)
+                        over = 1.f + ((1 - Factor) / 0.2f * (overshoot - 1.f));
                 }
 
 
-                fractor -= 1.f;
-                if (fractor < 1)
+                Factor -= 1.f;
+                if (Factor < 1)
                 {
-                    float postFix = a * FMath::Pow(2, 10 * fractor);
-                    float sine = FMath::Sin((fractor - s) * (2 * (PI)) / p);
-                    return (start - 0.5f * (postFix * sine) * over);
+                    float postFix = a * FMath::Pow(2, 10 * Factor);
+                    float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
+                    return (Start - 0.5f * (postFix * sine) * over);
                 }
 
-                float postFix = a * FMath::Pow(2, -10 * fractor);
-                float sine = FMath::Sin((fractor - s) * (2 * (PI)) / p);
-                return (postFix * sine * 0.5f * over + end);
+                float postFix = a * FMath::Pow(2, -10 * Factor);
+                float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
+                return (postFix * sine * 0.5f * over + End);
             }
         private:
             float overshoot;
@@ -417,61 +417,62 @@ namespace QTween
         public:
             static FBackEasing Back;
 
-            FBackEasing() :overshoot(1.f) {}
+            FBackEasing() :Overshoot(1.f) {}
 
-            virtual float EaseIn(float fractor, float start, float end) final
+            virtual float EaseIn(float Factor, float Start, float End) override final
             {
-                float s = 1.70158f * overshoot;
-                float postFix = fractor;
-                return ((end - start) * (postFix)*fractor * ((s + 1) * fractor - s) + start);
+                float s = 1.70158f * Overshoot;
+                float postFix = Factor;
+                return ((End - Start) * (postFix)*Factor * ((s + 1) * Factor - s) + Start);
             }
-            virtual float EaseOut(float fractor, float start, float end) final
+            virtual float EaseOut(float Factor, float Start, float End) override final
             {
-                float s = 1.70158f * overshoot;
-                fractor -= 1;
-                return ((end - start) * (fractor * fractor * ((s + 1) * fractor + s) + 1) + start);
+                float s = 1.70158f * Overshoot;
+                Factor -= 1;
+                return ((End - Start) * (Factor * Factor * ((s + 1) * Factor + s) + 1) + Start);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end) final
+            virtual float EaseInOut(float Factor, float Start, float End) override final
             {
-                float s = 1.70158f * overshoot;
-                float t = fractor;
-                float b = start;
-                float c = end - start;
+                float s = 1.70158f * Overshoot;
+                float t = Factor;
+                float b = Start;
+                float c = End - Start;
                 float d = 1;
-                s *= (1.525f * overshoot);
+                s *= (1.525f * Overshoot);
                 if ((t /= d / 2) < 1)
                     return (c / 2 * (t * t * (((s)+1) * t - s)) + b);
                 float postFix = t -= 2;
                 return (c / 2 * ((postFix)*t * (((s)+1) * t + s) + 2) + b);
             }
         private:
-            float overshoot;
+            float Overshoot;
         };
 
         class FSpringEasing : public IQTweenEasing
         {
         public:
             static FSpringEasing Spring;
-            virtual float EaseIn(float fractor, float start, float end)override
+            virtual float EaseIn(float Factor, float Start, float End)override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
 
-            virtual float EaseOut(float fractor, float start, float end)override
+            virtual float EaseOut(float Factor, float Start, float End)override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
 
-            virtual float EaseInOut(float fractor, float start, float end)override
+            virtual float EaseInOut(float Factor, float Start, float End)override final
             {
-                return Evaluate(fractor, start, end);
+                return Evaluate(Factor, Start, End);
             }
         private:
-            float Evaluate(float fractor, float start, float end)
+            static float Evaluate(float Factor, float Start, float End)
             {
-                float t = (FMath::Sin(fractor * PI * (0.2f + 2.5f * fractor * fractor * fractor)) * FMath::Pow(1.f - fractor, 2.2f) + fractor) * (1.f + (1.2f * (1.f - fractor)));
-                return start + (end - start) * t;
+                float t = (FMath::Sin(Factor * PI * (0.2f + 2.5f * Factor * Factor * Factor))
+                    * FMath::Pow(1.f - Factor, 2.2f) + Factor) * (1.f + (1.2f * (1.f - Factor)));
+                return Start + (End - Start) * t;
             }
 
         };

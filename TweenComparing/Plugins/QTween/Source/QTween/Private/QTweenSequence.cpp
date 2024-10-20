@@ -5,44 +5,35 @@
 #include "QTweenEngineSubsystem.h"
 #include "QTween.h"
 
-UQTweenSequence::UQTweenSequence(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+FQTweenSequence::FQTweenSequence()
+	: FQTweenBase()
 	, Previous(nullptr)
 	, Current(nullptr)
 	, Tween(nullptr)
 	, TotalDelay(0)
 	, TimeScale(1.f)
-	, Counter(0)
 	, bToggle(false)
 	, DebugIter(0)
-	, Id(0)
 {
 
 }
 
-uint64 UQTweenSequence::GetId() const
-{
-	uint64 id = (uint64)Id;
-	id |= (Counter << 16);
-	return id;
-}
-
-void UQTweenSequence::Reset()
+void FQTweenSequence::Reset()
 {
 	Previous = nullptr;
 	Tween = nullptr;
 	TotalDelay = 0.f;
 }
 
-void UQTweenSequence::Init(uint32 InId, uint32 GlobalCounter)
+void FQTweenSequence::Init(uint32 InId, uint32 GlobalCounter)
 {
 	Reset();
 	Id = InId;
 	Counter = GlobalCounter;
-	Current = this;
+	Current = StaticCastSharedRef<FQTweenSequence>(AsShared());
 }
 
-UQTweenSequence* UQTweenSequence::Append(float delay) const
+TSharedPtr<FQTweenSequence> FQTweenSequence::Append(float delay) const
 {
 	if(Current)
 	{
@@ -52,7 +43,7 @@ UQTweenSequence* UQTweenSequence::Append(float delay) const
 	return Current;
 }
 
-UQTweenSequence* UQTweenSequence::Append(UQTween* InTween)
+TSharedPtr<FQTweenSequence> FQTweenSequence::Append(TSharedPtr<FQTweenInstance> InTween)
 {
 	if (nullptr != Current)
 	{
@@ -64,7 +55,7 @@ UQTweenSequence* UQTweenSequence::Append(UQTween* InTween)
 	return Current;
 }
 
-UQTweenSequence* UQTweenSequence::Insert(UQTween* InTween)
+TSharedPtr<FQTweenSequence> FQTweenSequence::Insert(TSharedPtr<FQTweenInstance> InTween)
 {
 	if (nullptr != Current)
 	{
@@ -75,21 +66,21 @@ UQTweenSequence* UQTweenSequence::Insert(UQTween* InTween)
 	return Current;
 }
 
-UQTweenSequence* UQTweenSequence::SetScale(float Scale)
+TSharedPtr<FQTweenSequence> FQTweenSequence::SetScale(float Scale)
 {
 	SetScaleRecursive(Current, Scale, 500);
 	return AddOn();
 }
 
-UQTweenSequence* UQTweenSequence::Reverse()
+TSharedPtr<FQTweenSequence> FQTweenSequence::Reverse()
 {
 	return AddOn();
 }
 
-UQTweenSequence* UQTweenSequence::AddOn()
+TSharedPtr<FQTweenSequence> FQTweenSequence::AddOn()
 {
 	Current->bToggle = true;
-	UQTweenSequence* Last = Current;
+	TSharedPtr<FQTweenSequence> Last = Current;
 	Current->Previous = Current;
 	Current = UQTweenEngineSubsystem::Get()->Sequence(true);
 	Last->bToggle = false;
@@ -98,9 +89,9 @@ UQTweenSequence* UQTweenSequence::AddOn()
 	return Current;
 }
 
-float UQTweenSequence::AddPreviousDelays() const
+float FQTweenSequence::AddPreviousDelays() const
 {
-	UQTweenSequence* Prev = Current->Previous;
+	TSharedPtr<FQTweenSequence> Prev = Current->Previous;
 	if (nullptr != Prev && Prev->Tween != nullptr)
 	{
 		return Current->TotalDelay + Prev->Tween->Time;
@@ -109,7 +100,7 @@ float UQTweenSequence::AddPreviousDelays() const
 	return Current->TotalDelay;
 }
 
-void UQTweenSequence::SetScaleRecursive(UQTweenSequence* Seq, float InTimeScale, int Count)
+void FQTweenSequence::SetScaleRecursive(TSharedPtr<FQTweenSequence> Seq, float InTimeScale, int Count)
 {
 	if (Count > 0)
 	{

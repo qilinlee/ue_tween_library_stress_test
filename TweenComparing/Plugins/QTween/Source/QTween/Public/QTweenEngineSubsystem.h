@@ -6,12 +6,14 @@
 #include "Subsystems/EngineSubsystem.h"
 #include "Tickable.h"
 #include "QTween.h"
+#include "QTweenSequence.h"
 #include "Logging/LogMacros.h"
 #include "QTweenEngineSubsystem.generated.h"
 
+class FQTweenSequence;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogQTween, Log, All);
 
-class UQTweenSequence;
 
 /**
  * UQTweenEngineSubsystem
@@ -60,8 +62,8 @@ public:
 	void Cancel(uint64 uniqueId);
 	void Cancel(uint64 uniqueId, bool callOnComplete);
 
-	UQTween* Tween(uint64 uniqueId);
-	TArray<UQTween*> Tweens(UObject* obj);
+	FQTweenHandle Tween(uint64 uniqueId);
+	TArray<FQTweenHandle> Tweens(UObject* obj);
 
 	void Pause(uint64 uniqueId);
 	void Pause(UObject* obj);
@@ -76,11 +78,12 @@ public:
 	bool IsTweening(UObject* obj);
 	bool IsTweening(uint64 uniqueId);
 
-	UQTween* Options();
+	TSharedPtr<FQTweenInstance> Options();
 
-	UQTween* PushNewTween(UObject* obj, const FVector& to, float time, UQTween* tween);
-	UQTween* PushNewTween(UObject* obj, const FVector& to, float time, UQTween& tween);
-	UQTweenSequence* Sequence(bool initSeq = true);
+	TSharedPtr<FQTweenInstance> GetTween(const FQTweenHandle& Tween);
+	FQTweenHandle PushNewTween(UObject* Obj, const FVector& To, float Time, TSharedPtr<FQTweenInstance> Tween);
+	FQTweenHandle PushNewTween(UObject* Obj, const FVector& To, float Time, const FQTweenHandle& Tween);
+	TSharedPtr<FQTweenSequence> Sequence(bool initSeq = true);
 
 #if WITH_EDITOR
 	void RegisterActiveTimer();
@@ -88,48 +91,47 @@ public:
 	void ActiveTimerTick();
 #endif
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Alpha(UObject* obj, float to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle Alpha(UObject* obj, float to, float time);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Colour(UObject* obj, const FLinearColor& to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle Colour(UObject* obj, const FLinearColor& to, float time);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Move(UObject* obj, FVector to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle Move(UObject* obj, FVector to, float time);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* MoveBy(UObject* obj, FVector delta, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle MoveBy(UObject* obj, FVector delta, float time);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Rotate(UObject* obj, FVector to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle Rotate(UObject* obj, FVector to, float time);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Scale(UObject* obj, FVector to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween")
+	FQTweenHandle Scale(UObject* obj, FVector to, float time);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TweenFloat", ScriptName = "TweenFloat", Keywords = "float"))
-	UQTween* TweenFloat(float from, float to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenFloat", ScriptName = "TweenFloat", Keywords = "float"))
+	FQTweenHandle TweenFloat(float from, float to, float time);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TweenFloatFromTo", ScriptName = "TweenFloatFromTo", Keywords = "float"))
-	UQTween* TweenFloatFromTo(UObject* obj, float from, float to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenFloatFromTo", ScriptName = "TweenFloatFromTo", Keywords = "float"))
+	FQTweenHandle TweenFloatFromTo(UObject* obj, float from, float to, float time);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TweenVector2D", ScriptName = "TweenVector2D", Keywords = "vector2d"))
-	UQTween* TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenVector2D", ScriptName = "TweenVector2D", Keywords = "vector2d"))
+	FQTweenHandle TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TweenVector", ScriptName = "TweenVector", Keywords = "vector"))
-	UQTween* TweenVector(UObject* obj, FVector from, FVector to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenVector", ScriptName = "TweenVector", Keywords = "vector"))
+	FQTweenHandle TweenVector(UObject* obj, FVector from, FVector to, float time);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "TweenColor", ScriptName = "TweenColor", Keywords = "color"))
-	UQTween* TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time);
+	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenColor", ScriptName = "TweenColor", Keywords = "color"))
+	FQTweenHandle TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time);
 
-	float TweenOnCurve(UQTween* tween, float ratioPassed);
-	void TweenOnCurve(UQTween* tween, float ratioPassed, FVector& outResult);
+
 
 	//float DoTweenAsset(UObject* owner, const UACMTweenAsset* asset, bool forward = true, float delay = 0.f);
 
 	template<typename UserClass>
-	UQTween* DelayCall(float delayTime, UserClass* obj, void(UserClass::* callback)(), FName funcName)
+	FQTweenHandle DelayCall(float delayTime, UserClass* obj, void(UserClass::* callback)(), FName funcName)
 	{
-		UQTween* tween = Options()
+		FQTweenHandle tween = Options()
 			->SetCallback()
 			->SetOnComplete(obj, callback, funcName);
 		return PushNewTween(obj, FVector::ZeroVector, delayTime, tween);
@@ -151,18 +153,14 @@ public:
 	float DtEstimated;
 	float DtManual;
 private:
-	void BackUniqueId(uint64 uniqueId, uint32& id, uint32& counter);
-	void LogError(FString error);
+	void LogError(FString error) const;
 	void IncreaseGlobalCounter();
 private:
-
-	UPROPERTY()
-	TArray<class UQTweenSequence*> Sequences;
+	TArray<FQTweenInstance> PoolTweens;
+	TArray<TSharedPtr<FQTweenInstance>> TweensPtr;
+	TArray<FQTweenSequence> Sequences;
+	TArray<TSharedPtr<FQTweenSequence>> SequencesPtr;
 	
-	UPROPERTY()
-	TArray<class UQTween*> PoolTweens;
-	
-	UPROPERTY()
 	uint8 ThrowErrors;
 
 	int32 MaxTweenSearch;

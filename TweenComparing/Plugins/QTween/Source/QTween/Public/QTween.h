@@ -75,139 +75,129 @@ enum class EQTweenLoopType : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FQTweenEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FQTweenOnUpdateEvent, float, value);
 
-USTRUCT(BlueprintType)
-struct QTWEEN_API FQTweenDescrOptional
+class QTWEEN_API FQTweenBase : public TSharedFromThis<FQTweenBase>
 {
-	GENERATED_USTRUCT_BODY()
 public:
-	UPROPERTY()
-	UObject* Owner;
-	UPROPERTY()
-	FVector Point;
-	UPROPERTY()
-	FVector Axis;
-	UPROPERTY()
-	FQuat OrigRotation;
-	UPROPERTY()
-	const UCurveFloat* AnimCurve;
-	UPROPERTY()
-	uint32 InitFrameCount;
-	UPROPERTY()
-	FLinearColor Color;
+	virtual ~FQTweenBase() {}
 
-	UPROPERTY()
-	FQTweenEvent OnStart;
-	UPROPERTY()
-	FQTweenEvent OnComplete;
-	UPROPERTY()
-	FQTweenOnUpdateEvent OnUpdate;
-
-public:
-	void Reset()
+	static uint64 GenUniqueID(uint32 ID, uint32 InCounter)
 	{
-		AnimCurve = nullptr;
-		Point = FVector::ZeroVector;
-		InitFrameCount = 0;
-
-		OnStart.Clear();
-		OnComplete.Clear();
-		OnUpdate.Clear();
+		uint64 t = ID;
+		t |= InCounter << 16;
+		return t;
 	}
 
-	void CallOnUpdate(float val, float ratioPassed)
+	static void BreakUniqueID(uint64 UniqueID, uint32& OutId, uint32 OutCounter)
 	{
-		OnUpdate.Broadcast(val);
+		OutId = static_cast<uint32>(UniqueID & 0xFFFF);
+		OutCounter = static_cast<uint32>(UniqueID >> 16);
 	}
+	
+	uint64 GetUniqueID() const
+	{
+		return GenUniqueID(Id, Counter);
+	}
+
+	TSharedRef<FQTweenBase> SetID(uint32 InID, uint32 InGlobalCounter);
+
+protected:
+	uint32 Id = 0;
+	uint32 Counter = 0;
 };
 
-UCLASS(BlueprintType)
-class QTWEEN_API UACMTweenEmpty : public UObject
+class QTWEEN_API FQTweenInstance : public FQTweenBase
 {
-	GENERATED_BODY()
-public:
-
-};
-
-UCLASS(BlueprintType)
-class QTWEEN_API UQTween : public UObject
-{
-    GENERATED_UCLASS_BODY()
-
-    typedef FVector(UQTween::* EaseMethodFunc)();
-public:
-	UPROPERTY()
+    typedef FVector(FQTweenInstance::* EaseMethodFunc)();
+	friend class UQTweenEngineSubsystem;
+	friend class FQTweenSequence;
+protected:
+	
 	uint8 bToggle : 1;
-	UPROPERTY()
+	
 	uint8 bUseEstimatedTime : 1;
-	UPROPERTY()
+	
 	uint8 bUseFrames : 1;
-	UPROPERTY()
+	
 	uint8 bUseManualTime : 1;
-	UPROPERTY()
+	
 	uint8 bUsesNormalDt : 1;
-	UPROPERTY()
-	uint8 bHasInitiliazed : 1;
-	UPROPERTY()
+	
+	uint8 bHasInitialized : 1;
+	
 	uint8 bHasExtraOnCompletes : 1;
-	UPROPERTY()
+	
 	uint8 bHasPhysics : 1;
-	UPROPERTY()
+	
 	uint8 bOnCompleteOnRepeat : 1;
-	UPROPERTY()
+	
 	uint8 bOnCompleteOnStart : 1;
-	UPROPERTY()
+	
 	uint8 bUseRecursion : 1;
-	UPROPERTY()
+	
 	uint8 bHasUpdateCallback : 1;
-
-	UPROPERTY()
+	
 	int32 LoopCount;
-	UPROPERTY()
-	uint32 Counter;
-	UPROPERTY()
+	
 	float RatioPassed;
-	UPROPERTY()
+	
 	float Passed;
-	UPROPERTY()
+	
 	float Delay;
-	UPROPERTY()
+	
 	float Time;
-	UPROPERTY()
+	
 	float Speed;
-	UPROPERTY()
+	
 	float LastVal;
-	UPROPERTY()
+	
 	float Direction;
-	UPROPERTY()
+	
 	float DirectionLast;
-	UPROPERTY()
+	
 	float Overshoot;
-	UPROPERTY()
+	
 	float Period;
-	UPROPERTY()
+	
 	float Scale;
-	UPROPERTY()
+	
 	FVector From;
-	UPROPERTY()
+	
 	FVector To;
-	UPROPERTY()
-	FQTweenDescrOptional Optional;
-
-	UPROPERTY()
+	
 	EQTweenAction Type;
-	UPROPERTY()
+	
 	EQTweenLoopType LoopType;
 
+	FVector Diff;
+	
+	TWeakObjectPtr<UObject> Owner;
+
+    FVector Point;
+
+    FVector Axis;
+
+    FQuat OrigRotation;
+
+	TWeakObjectPtr<UCurveFloat> AnimCurve;
+
+    uint32 InitFrameCount;
+
+    FLinearColor Color;
+
+    FQTweenEvent OnStart;
+
+    FQTweenEvent OnComplete;
+
+    FQTweenOnUpdateEvent OnUpdate;
+private:
 	static float Val;
 	static float DT;
 	static FVector NewVector;
-
-	FVector Diff;
-	TWeakObjectPtr<UObject> Owner;
-private:
+	
 	FVector DiffDiv2;
 	EQTweenType EaseType;
-	uint32 Id;
+	
+	uint32 ObjUniqueID;
 	IQTweenEasing* CurEasing;
 	EQTweenEasingType CurEasingType;
 
@@ -216,167 +206,147 @@ private:
 	TFunction<void(void)> InitInternal;
 	TFunction<void(void)> EaseInternal;
 
-
 	static TArray<IQTweenEasing*> EasingFuncList;
 public:
+    FQTweenInstance();
 	static void InitEasingMethod();
-	uint64 GetUniqueId() const;
-	void Reset();
+	
+	void ResetTween();
 	void CallOnCompletes() const;
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* Cancel(UObject* Obj);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetFollow();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetOffset(const FVector& Offset);
+	void SetObjUniqueID(uint32 uniqueID);
+	uint32 GetObjUniqueID() const;
 	
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetCallback();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetTarget(UObject* Obj);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* UpdateNow();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* Pause();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* Resume();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetAxis(const FVector& Axis);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetDelay(float DelayTime);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetEase(EQTweenType EaseType);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetEaseCurve(const UCurveFloat* Curve);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetOvershoot(float Over);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetPeriod(float InPeriod);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetSµcale(float fScale);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetTo(const FVector& InTo);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetFrom(const FVector& InFrom);
 	
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetDiff(const FVector& Diff);
+	TSharedRef<FQTweenInstance> Cancel(const UObject* Obj);
+	
+	TSharedRef<FQTweenInstance> SetFollow();
+	
+	TSharedRef<FQTweenInstance> SetOffset(const FVector& Offset);
+	
+	TSharedRef<FQTweenInstance> SetCallback();
+	
+	TSharedRef<FQTweenInstance> SetTarget(UObject* Obj);
+	
+	TSharedRef<FQTweenInstance> UpdateNow();
+	
+	TSharedRef<FQTweenInstance> Pause();
+	
+	TSharedRef<FQTweenInstance> Resume();
+	
+	TSharedRef<FQTweenInstance> SetAxis(const FVector& Axis);
+	
+	TSharedRef<FQTweenInstance> SetDelay(float DelayTime);
+	
+	TSharedRef<FQTweenInstance> SetEase(EQTweenType EaseType);
+	
+	TSharedRef<FQTweenInstance> SetEaseCurve(UCurveFloat* Curve);
+	
+	TSharedRef<FQTweenInstance> SetOvershoot(float Over);
+	
+	TSharedRef<FQTweenInstance> SetPeriod(float InPeriod);
+	
+	TSharedRef<FQTweenInstance> SetScale(float fScale);
+	
+	TSharedRef<FQTweenInstance> SetTo(const FVector& InTo);
+	
+	TSharedRef<FQTweenInstance> SetFrom(const FVector& InFrom);
+	
+	TSharedRef<FQTweenInstance> SetDiff(const FVector& Diff);
+	
+	TSharedRef<FQTweenInstance> SetHasInitialized(bool bInitialized);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetHasInitialized(bool bInitialized);
+	
+	
+	TSharedRef<FQTweenInstance> SetPassed(float InPassed);
+	
+	TSharedRef<FQTweenInstance> SetTime(float InTime);
+	
+	TSharedRef<FQTweenInstance> SetSpeed(float InSpeed);
+	
+	TSharedRef<FQTweenInstance> SetRepeat(int32 Repeat);
+	
+	TSharedRef<FQTweenInstance> SetLoopType(EQTweenLoopType eLoopType);
+	
+	TSharedRef<FQTweenInstance> SetUseEstimatedTime(bool InUseEstimatedTime);
+	
+	TSharedRef<FQTweenInstance> SetIgnoreTimeScale(bool bIgnoreTimeScale);
+	
+	TSharedRef<FQTweenInstance> SetUseFrames(bool InUseFrames);
+	
+	TSharedRef<FQTweenInstance> SetUseManualTime(bool InUseManualTime);
+	
+	TSharedRef<FQTweenInstance> SetLoopCount(int32 count);
+	
+	TSharedRef<FQTweenInstance> SetLoopOnce();
+	
+	TSharedRef<FQTweenInstance> SetLoopClamp(int32 Loops = 0);
+	
+	TSharedRef<FQTweenInstance> SetLoopPingPong(int32 Loops = 0);
+	
+	TSharedRef<FQTweenInstance> SetPoint(const FVector& Point);
+	
+	TSharedRef<FQTweenInstance> SetOnCompleteOnRepeat(bool bIsOn);
+	
+	TSharedRef<FQTweenInstance> SetOnCompleteOnStart(bool bIsOn);
+	
+	TSharedRef<FQTweenInstance> SetDirection(float InDir);
+	
+    TSharedRef<FQTweenInstance> SetRecursive(bool bUseRecursive);
 
-	UQTween* SetId(uint32 id, uint32 GlobalCounter);
+	TSharedRef<FQTweenInstance> SetAlpha();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetPassed(float InPassed);
+	TSharedRef<FQTweenInstance> SetColor();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetTime(float InTime);
+	TSharedRef<FQTweenInstance> SetMove();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetSpeed(float InSpeed);
+	TSharedRef<FQTweenInstance> SetRotate();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetRepeat(int32 Repeat);
+	TSharedRef<FQTweenInstance> SetScale();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetLoopType(EQTweenLoopType eLoopType);
+	TSharedRef<FQTweenInstance> SetCallbackColor();
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetUseEstimatedTime(bool InUseEstimatedTime);
+	TSharedRef<FQTweenInstance> SetFromColor(const FLinearColor& Color);
 
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetIgnoreTimeScale(bool bIignoreTimeScale);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetUseFrames(bool InUseFrames);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetUseManualTime(bool InUseManualTime);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetLoopCount(int32 count);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetLoopOnce();
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetLoopClamp(int32 Loops = 0);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetLoopPingPong(int32 Loops = 0);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetPoint(const FVector& Point);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetOnCompleteOnRepeat(bool bIsOn);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetOnCompleteOnStart(bool bIsOn);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetDirection(float InDir);
-
-	UFUNCTION(BlueprintCallable)
-	UQTween* SetRecursive(bool bUseRecursive);
-
-	UQTween* SetAlpha();
-
-	UQTween* SetColor();
-
-	UQTween* SetMove();
-
-	UQTween* SetRotate();
-
-	UQTween* SetScale();
-
-	UQTween* SetCallbackColor();
-
-	UQTween* SetFromColor(const FLinearColor& Color);
-
+	
 	template<typename UserClass>
-	UQTween* SetOnStart(UserClass* Obj, void(UserClass::* OnStart)(), FName FuncName)
+	TSharedRef<FQTweenInstance> SetOnStart(UserClass* Obj, void(UserClass::* InOnStart)(), FName FuncName)
 	{
-		Optional.OnStart.__Internal_AddUniqueDynamic(Obj, OnStart, FuncName);
-		return this;
+		InOnStart.__Internal_AddUniqueDynamic(Obj, InOnStart, FuncName);
+		return SharedThis<FQTweenInstance>(this);
 	}
 
 	template<typename UserClass>
-	UQTween* SetOnComplete(UserClass* Obj, void(UserClass::* OnComplete)(), FName FuncName)
+	TSharedRef<FQTweenInstance> SetOnComplete(UserClass* Obj, void(UserClass::* InOnComplete)(), FName FuncName)
 	{
-		Optional.OnComplete.__Internal_AddUniqueDynamic(Obj, OnComplete, FuncName);
+		InOnComplete.__Internal_AddUniqueDynamic(Obj, InOnComplete, FuncName);
 		bHasExtraOnCompletes = true;
-		return this;
+		return SharedThis<FQTweenInstance>(this);
 	}
 
 	template<typename UserClass>
-	UQTween* SetOnUpdate(UserClass* Obj, void(UserClass::* OnUpdate)(float), FName FuncName)
+	TSharedRef<FQTweenInstance> SetOnUpdate(UserClass* Obj, void(UserClass::* InOnUpdate)(float), FName FuncName)
 	{
-		Optional.OnUpdate.__Internal_AddUniqueDynamic(Obj, OnUpdate, FuncName);
+		InOnUpdate.__Internal_AddUniqueDynamic(Obj, InOnUpdate, FuncName);
 		bHasUpdateCallback = true;
 
-		return this;
+		return SharedThis<FQTweenInstance>(this);
 	}
 
 	bool UpdateInternal();
-	static bool IsValid(const UQTween* Tween);
+    
+    bool IsToggled() const;
+    void SetToggle(bool bInToggle);
+	
+    UObject* GetOwner() const;
+	void SetOwner(UObject* Obj);
+
+	FVector TweenOnCurve();
+	float TweenOnCurve(float ratioPassed) const;
+	FVector TweenOnCurve(float ratioPassed, FVector& OutVector) const;
+	
+    static bool IsValid(const TSharedPtr<FQTweenInstance> Tween);
+	static bool IsValid(const FQTweenInstance* Tween);
 private:
 	float GetDeltaTime();
 	void Init();
@@ -388,8 +358,40 @@ private:
 	void SetEaseShake();
 	void SetEaseSprint();
 
-	FVector TweenOnCurve();
+	
 	FVector TweenByEasingType();
-	FLinearColor TweenColor(UQTween* Tween, float Factor);
+    static FLinearColor TweenColor(TSharedRef<FQTweenInstance> Tween, float Factor);
 };
 
+USTRUCT(BlueprintType)
+struct FQTweenHandle
+{
+	GENERATED_BODY()
+
+	static constexpr uint64 INVALID_UNIQUE_ID = -1;
+	uint64 UniqueID = INVALID_UNIQUE_ID;
+	TWeakPtr<FQTweenInstance> Instance = nullptr;
+
+public:
+	FQTweenHandle() : UniqueID(INVALID_UNIQUE_ID), Instance(nullptr) {}
+	explicit FQTweenHandle(TSharedPtr<FQTweenInstance> Tween) : UniqueID(Tween->GetUniqueID()), Instance(Tween) {}
+
+	bool IsValid() const;
+	
+	static FQTweenHandle Invalid;
+	
+	bool operator==(const FQTweenHandle& Other) const;
+	operator bool() const;
+	bool operator<(const FQTweenHandle& Other) const;
+	bool operator<=(const FQTweenHandle& Other) const;
+	TSharedPtr<FQTweenInstance> operator->() const;
+};
+
+
+UCLASS(BlueprintType)
+class QTWEEN_API UACMTweenEmpty : public UObject
+{
+	GENERATED_BODY()
+public:
+
+};
