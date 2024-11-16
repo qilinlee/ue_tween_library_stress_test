@@ -81,7 +81,20 @@ void UQTweenEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UQTweenEngineSubsystem::Deinitialize()
 {
-
+	for(auto& Ptr : SequencesPtr)
+	{
+		Ptr.Reset();
+	}
+	SequencesPtr.Empty();
+	Sequences.Empty();
+	
+	for (auto& Ptr : TweensPtr)
+	{
+		Ptr.Reset();
+	}
+	TweensPtr.Empty();
+	PoolTweens.Empty();
+	
     Super::Deinitialize();
 }
 
@@ -93,12 +106,12 @@ ETickableTickType UQTweenEngineSubsystem::GetTickableTickType() const
 
 bool UQTweenEngineSubsystem::IsAllowedToTick() const
 {
-    return bInitialized && !IsTemplate();
+    return bInitialized && bPoolInited && !IsTemplate();
 }
 
 void UQTweenEngineSubsystem::Tick(float DeltaTime)
 {
-    checkf(IsInitialized(), TEXT("Ticking should have been disabled for an uninitialized subsystem : remember to call IsInitialized in the subsystem's IsTickable, IsTickableInEditor and/or IsTickableWhenPaused implementation"));
+    checkf(IsAllowedToTick(), TEXT("Ticking should have been disabled for an uninitialized subsystem : remember to call IsInitialized in the subsystem's IsTickable, IsTickableInEditor and/or IsTickableWhenPaused implementation"));
 
 	Update(DeltaTime);
 }
@@ -108,8 +121,23 @@ TStatId UQTweenEngineSubsystem::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(QTween, STATGROUP_Tickables);
 }
 
+bool UQTweenEngineSubsystem::IsTickable() const
+{
+	if(!IsAllowedToTick())
+	{
+		return false;
+	}
+	
+	return FTickableGameObject::IsTickable();
+}
+
 bool UQTweenEngineSubsystem::IsTickableInEditor() const
 {
+	if(!IsAllowedToTick())
+	{
+		return false;
+	}
+	
     return true;
 }
 
@@ -118,9 +146,9 @@ void UQTweenEngineSubsystem::Init()
 	Init(MaxTweens);
 }
 
-void UQTweenEngineSubsystem::Init(int32 maxSimultaneousTweens)
+void UQTweenEngineSubsystem::Init(int32 InMaxSimultaneousTweens)
 {
-	Init(maxSimultaneousTweens, MaxSequences);
+	Init(InMaxSimultaneousTweens, MaxSequences);
 }
 
 void UQTweenEngineSubsystem::Init(int32 MaxSimultaneousTweens, int32 MaxSimultaneousSeqs)
@@ -129,7 +157,7 @@ void UQTweenEngineSubsystem::Init(int32 MaxSimultaneousTweens, int32 MaxSimultan
 	{
 		return;
 	}
-
+	
 	TweenEmpty = NewObject<UACMTweenEmpty>(this);
 
 	MaxTweens = MaxSimultaneousTweens;
@@ -140,10 +168,16 @@ void UQTweenEngineSubsystem::Init(int32 MaxSimultaneousTweens, int32 MaxSimultan
 	TweensFinished.Reserve(MaxTweens);
 	TweensFinishedIds.Reserve(MaxTweens);
 
-	for (int32 idx = 0; idx < MaxTweens; ++idx)
+	for (int32 Idx = 0; Idx < MaxTweens; ++Idx)
 	{
 		FQTweenInstance& Instance = PoolTweens.AddDefaulted_GetRef();
-		TweensPtr.Add(MakeShareable(&Instance));
+		TweensPtr.Add(MakeShareable(&Instance, [](FQTweenInstance* Ptr)
+		{
+			if(auto* TweenSystem = Get())
+			{
+				TweenSystem->DestroyTweenInstance(Ptr);
+			}
+		}));
 		TweensPtr.Last()->ResetTween();
 		
 		TweensFinished.Add(-1);
@@ -152,31 +186,38 @@ void UQTweenEngineSubsystem::Init(int32 MaxSimultaneousTweens, int32 MaxSimultan
 
 	Sequences.Reserve(MaxSequences);
 	SequencesPtr.Reserve(MaxSequences);
-	for (int32 idx = 0; idx < MaxSequences; ++idx)
+	for (int32 Idx = 0; Idx < MaxSequences; ++Idx)
 	{
 		FQTweenSequence& Seq = Sequences.AddDefaulted_GetRef();
-		SequencesPtr.Add(MakeShareable(&Seq));
+		SequencesPtr.Add(MakeShareable(&Seq, [](FQTweenSequence* Ptr)
+		{
+			if(auto* TweenSystem = Get())
+			{
+				TweenSystem->DestroyTweenSequence(Ptr);
+			}
+		}));
 	}
+	bPoolInited = true;
 }
 
 int32 UQTweenEngineSubsystem::GetCountTweensRunning()
 {
-	int32 count = 0;
-	for (int32 index = 0; index < MaxTweenSearch; ++index)
+	int32 Count = 0;
+	for (int32 Index = 0; Index < MaxTweenSearch; ++Index)
 	{
-		if (PoolTweens[index].bToggle)
+		if (PoolTweens[Index].bToggle)
 		{
-			++count;
+			++Count;
 		}
 	}
-	return count;
+	return Count;
 }
 
 void UQTweenEngineSubsystem::Reset()
 {
-	for (int32 idx = 0; idx < PoolTweens.Num(); ++idx)
+	for (int32 Idx = 0; Idx < PoolTweens.Num(); ++Idx)
 	{
-		PoolTweens[idx].ResetTween();
+		PoolTweens[Idx].ResetTween();
 	}
 
 	PoolTweens.Empty();
@@ -228,8 +269,8 @@ void UQTweenEngineSubsystem::Update(float InElapsedTime)
 
 	for (int32 i = 0; i < FinishedCnt; i++)
 	{
-		uint32 j = TweensFinished[i];
-		FQTweenInstance& Tween = PoolTweens[j];
+		uint32 Index = TweensFinished[i];
+		FQTweenInstance& Tween = PoolTweens[Index];
 
 		if (Tween.GetUniqueID() == TweensFinishedIds[i])
 		{
@@ -240,7 +281,7 @@ void UQTweenEngineSubsystem::Update(float InElapsedTime)
 				Tween.OnComplete.Broadcast();
 			}
 
-			RemoveTween(j);
+			RemoveTween(Index);
 		}
 	}
 }
@@ -442,7 +483,7 @@ FQTweenHandle UQTweenEngineSubsystem::Tween(uint64 UniqueId)
 
 TArray<FQTweenHandle> UQTweenEngineSubsystem::Tweens(UObject* Obj)
 {
-	TArray<FQTweenHandle> result;
+	TArray<FQTweenHandle> Result;
 
 	if (nullptr != Obj && Obj->IsValidLowLevel())
 	{
@@ -451,12 +492,12 @@ TArray<FQTweenHandle> UQTweenEngineSubsystem::Tweens(UObject* Obj)
 			if (TweensPtr[i]->bToggle
 				&& TweensPtr[i]->Owner == Obj)
 			{
-				result.Add(FQTweenHandle(TweensPtr[i]));
+				Result.Add(FQTweenHandle(TweensPtr[i]));
 			}
 		}
 	}
 
-	return result;
+	return Result;
 }
 
 void UQTweenEngineSubsystem::Pause(uint64 UniqueId)
@@ -526,7 +567,7 @@ bool UQTweenEngineSubsystem::IsPaused(UObject* Obj)
 	return false;
 }
 
-bool UQTweenEngineSubsystem::IsPuased(uint64 UniqueId)
+bool UQTweenEngineSubsystem::IsPaused(uint64 UniqueId)
 {
 	uint32 BackId = 0, BackCounter = 0;
 	FQTweenBase::BreakUniqueID(UniqueId, BackId, BackCounter);
@@ -641,6 +682,7 @@ TSharedPtr<FQTweenInstance> UQTweenEngineSubsystem::Options()
 					"QTween - You have run out of available spaces for tweening. To avoid this error increase the number of spaces to available for tweening when you initialize the QTween class ex: LeanTween.init( %d );"),
 				MaxTweens * 2);
 			LogError(str);
+			check(false);
 			return nullptr;
 		}
 
@@ -662,6 +704,7 @@ TSharedPtr<FQTweenInstance> UQTweenEngineSubsystem::Options()
 	if (bFound == false)
 	{
 		LogError(TEXT("no available Tween found!"));
+		check(false);
 		return nullptr;
 	}
 
@@ -707,6 +750,26 @@ void UQTweenEngineSubsystem::IncreaseGlobalCounter()
 	}
 }
 
+void UQTweenEngineSubsystem::DestroyTweenInstance(FQTweenInstance* InstancePtr)
+{
+	check(InstancePtr != nullptr);
+	int32 Index = PoolTweens.IndexOfByPredicate([InstancePtr](const FQTweenInstance& Tween)->bool{return &Tween == InstancePtr;});
+	if(Index != INDEX_NONE)
+	{
+		PoolTweens.RemoveAt(Index);
+	}
+}
+
+void UQTweenEngineSubsystem::DestroyTweenSequence(FQTweenSequence* SequencePtr)
+{
+	check(SequencePtr != nullptr);
+	int32 Index = Sequences.IndexOfByPredicate([SequencePtr](const FQTweenSequence& Sequence) -> bool{ return &Sequence == SequencePtr; });
+	if(Index != INDEX_NONE)
+	{
+		Sequences.RemoveAt(Index);
+	}
+}
+
 FQTweenHandle UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& To, float Time, TSharedPtr<FQTweenInstance> Tween)
 {
 	Init(MaxTweens);
@@ -739,7 +802,7 @@ FQTweenHandle UQTweenEngineSubsystem::PushNewTween(UObject* Obj, const FVector& 
 	return PushNewTween(Obj, To, Time, TweenInstance);
 }
 
-TSharedPtr<FQTweenSequence> UQTweenEngineSubsystem::Sequence(bool initSeq /*= true*/)
+TSharedPtr<FQTweenSequence> UQTweenEngineSubsystem::Sequence(bool InInitSeq /*= true*/)
 {
 	Init(MaxTweens);
 
@@ -750,7 +813,7 @@ TSharedPtr<FQTweenSequence> UQTweenEngineSubsystem::Sequence(bool initSeq /*= tr
 			if (Sequences[i].bToggle == false)
 			{
 				FQTweenSequence& Seq = Sequences[i];
-				if (initSeq)
+				if (InInitSeq)
 				{
 					Seq.Init(static_cast<uint32>(i + PoolTweens.Num()), GlobalCounter);
 
@@ -769,87 +832,87 @@ TSharedPtr<FQTweenSequence> UQTweenEngineSubsystem::Sequence(bool initSeq /*= tr
 	return nullptr;
 }
 
-FQTweenHandle UQTweenEngineSubsystem::Alpha(UObject* obj, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Alpha(UObject* Obj, float InTo, float InTime)
 {
-	TSharedPtr<FQTweenInstance> t = Options()->SetAlpha();
-	return PushNewTween(obj, FVector(to, 0, 0), time, t);
+	TSharedPtr<FQTweenInstance> Instance = Options()->SetAlpha();
+	return PushNewTween(Obj, FVector(InTo, 0, 0), InTime, Instance);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::Colour(UObject* obj, const FLinearColor& to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Colour(UObject* Obj, const FLinearColor& InTo, float InTime)
 {
-	TSharedPtr<FQTweenInstance> Tween = Options()->SetColor()
-		->SetPoint(FVector(to.R, to.G, to.B));
-	return PushNewTween(obj, FVector(1.0f, to.A, 0.f), time, Tween);
+	TSharedPtr<FQTweenInstance> Instance = Options()->SetColor()
+		->SetPoint(FVector(InTo.R, InTo.G, InTo.B));
+	return PushNewTween(Obj, FVector(1.0f, InTo.A, 0.f), InTime, Instance);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::Move(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Move(UObject* Obj, FVector InTo, float InTime)
 {
-	TSharedPtr<FQTweenInstance> Tween = Options()->SetMove();
-	return PushNewTween(obj, to, time, Tween);
+	TSharedPtr<FQTweenInstance> Instance = Options()->SetMove();
+	return PushNewTween(Obj, InTo, InTime, Instance);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::MoveBy(UObject* obj, FVector delta, float time)
+FQTweenHandle UQTweenEngineSubsystem::MoveBy(UObject* Obj, FVector InDelta, float InTime)
 {
-	if (obj->IsA(AActor::StaticClass()))
+	if (Obj->IsA(AActor::StaticClass()))
 	{
-		AActor* actor = Cast<AActor>(obj);
-		if (nullptr != actor)
-			return Move(obj, actor->GetActorLocation() + delta, time);
-	}
-	else if (obj->IsA(UWidget::StaticClass()))
-	{
-		UWidget* widget = Cast<UWidget>(obj);
-		if (nullptr != widget)
+		if (AActor* actor = Cast<AActor>(Obj); nullptr != actor)
 		{
-			FVector from(widget->GetRenderTransform().Translation, 0.f);
-			return Move(obj, from + delta, time);
+			return Move(Obj, actor->GetActorLocation() + InDelta, InTime);
+		}
+	}
+	else if (Obj->IsA(UWidget::StaticClass()))
+	{
+		if (UWidget* Widget = Cast<UWidget>(Obj); nullptr != Widget)
+		{
+			FVector From(Widget->GetRenderTransform().Translation, 0.f);
+			return Move(Obj, From + InDelta, InTime);
 		}
 	}
 
-	return Move(obj, delta, time);
+	return Move(Obj, InDelta, InTime);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::Rotate(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Rotate(UObject* Obj, FVector InTo, float InTime)
 {
-	return PushNewTween(obj, to, time, Options()->SetRotate());
+	return PushNewTween(Obj, InTo, InTime, Options()->SetRotate());
 }
 
 
-FQTweenHandle UQTweenEngineSubsystem::Scale(UObject* obj, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::Scale(UObject* Obj, FVector InTo, float InTime)
 {
-	return PushNewTween(obj, to, time, Options()->SetScale());
+	return PushNewTween(Obj, InTo, InTime, Options()->SetScale());
 }
 
-FQTweenHandle UQTweenEngineSubsystem::TweenFloat(float from, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenFloat(float InFrom, float InTo, float InTime)
 {
-	return TweenFloatFromTo(TweenEmpty, from, to, time);
+	return TweenFloatFromTo(TweenEmpty, InFrom, InTo, InTime);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::TweenFloatFromTo(UObject* obj, float from, float to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenFloatFromTo(UObject* Obj, float InFrom, float InTo, float InTime)
 {
-	return TweenVector(obj, FVector(from, 0, 0), FVector(to, 0, 0), time);
+	return TweenVector(Obj, FVector(InFrom, 0, 0), FVector(InTo, 0, 0), InTime);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenVector2D(UObject* Obj, FVector2D InFrom, FVector2D InTo, float InTime)
 {
-	return TweenVector(obj, FVector(from, 0), FVector(to, 0), time);
+	return TweenVector(Obj, FVector(InFrom, 0), FVector(InTo, 0), InTime);
 }
 
-FQTweenHandle UQTweenEngineSubsystem::TweenVector(UObject* obj, FVector from, FVector to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenVector(UObject* Obj, FVector InFrom, FVector InTo, float InTime)
 {
-	TSharedPtr<FQTweenInstance> Tween = Options()->SetCallback()
-		->SetFrom(from);
-	return PushNewTween(obj, to, time, Tween);
+	TSharedPtr<FQTweenInstance> Instance = Options()->SetCallback()
+		->SetFrom(InFrom);
+	return PushNewTween(Obj, InTo, InTime, Instance);
 
 }
 
-FQTweenHandle UQTweenEngineSubsystem::TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time)
+FQTweenHandle UQTweenEngineSubsystem::TweenColor(UObject* Obj, FLinearColor InFrom, FLinearColor InTo, float InTime)
 {
-	TSharedPtr<FQTweenInstance> Tween = Options()->SetCallbackColor()
-		->SetPoint(FVector(to.R, to.G, to.B))
-		->SetFromColor(from)
+	TSharedPtr<FQTweenInstance> Instance = Options()->SetCallbackColor()
+		->SetPoint(FVector(InTo.R, InTo.G, InTo.B))
+		->SetFromColor(InFrom)
 		->SetHasInitialized(false);
-	return PushNewTween(obj, FVector(1, to.A, 0.f), time, Tween);
+	return PushNewTween(Obj, FVector(1, InTo.A, 0.f), InTime, Instance);
 }
 
 //float UQTweenEngineSubsystem::DoTweenAsset(UObject* owner, const UACMTweenAsset* asset, bool forward, float delay /*= 0.f*/)
@@ -915,19 +978,31 @@ FQTweenHandle UQTweenEngineSubsystem::TweenColor(UObject* obj, FLinearColor from
 //}
 
 
-TArray<FVector>& UQTweenEngineSubsystem::Add(TArray<FVector>& a, const FVector& b)
+TArray<FVector>& UQTweenEngineSubsystem::Add(TArray<FVector>& VecA, const FVector& VecB)
 {
-	for (int32 i = 0; i < a.Num(); ++i)
+	for (int32 i = 0; i < VecA.Num(); ++i)
 	{
-		a[i] += b;
+		VecA[i] += VecB;
 	}
 
-	return a;
+	return VecA;
 }
 
 float UQTweenEngineSubsystem::ClosestRot(float From, float To)
 {
-	float MinusWhole = 0 - (360 - To);
+	float Dif = fmod(To - From + 180.f,360.f);
+	if (Dif < 0)
+	{
+		Dif += 360.f;
+	}
+	Dif -= 180.f;
+	if (FMath::Abs(Dif) < 1e-5f && From != To)
+	{
+		Dif = 360.f;
+	}
+	return Dif;
+	/*
+	 *float MinusWhole = 0 - (360 - To);
 	float PlusWhole = 360 + To;
 	float ToDiffAbs = FMath::Abs(To - From);
 	float MinusDiff = FMath::Abs(MinusWhole - From);
@@ -938,13 +1013,14 @@ float UQTweenEngineSubsystem::ClosestRot(float From, float To)
 	}
 
 	return MinusDiff < PlusDiff ? MinusWhole : PlusWhole;
+	*/
 }
 
-void UQTweenEngineSubsystem::LogError(FString error) const
+void UQTweenEngineSubsystem::LogError(FString InError) const
 {
 	if (ThrowErrors)
 	{
-		UE_LOG(LogQTween, Error, TEXT("%s"), *error);
+		UE_LOG(LogQTween, Error, TEXT("%s"), *InError);
 	}
 }
 

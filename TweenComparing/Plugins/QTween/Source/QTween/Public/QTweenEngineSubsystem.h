@@ -18,7 +18,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogQTween, Log, All);
 /**
  * UQTweenEngineSubsystem
  */
-UCLASS()
+UCLASS(BlueprintType)
 class QTWEEN_API UQTweenEngineSubsystem : public UEngineSubsystem, public FTickableGameObject
 {
 	GENERATED_BODY()
@@ -38,6 +38,7 @@ public:
 	virtual bool IsAllowedToTick() const override final;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override;
 	virtual bool IsTickableInEditor() const override;
 	// FTickableGameObject implementation End
 
@@ -69,7 +70,7 @@ public:
 	void Pause(UObject* obj);
 	void PauseAll();
 	bool IsPaused(UObject* obj);
-	bool IsPuased(uint64 uniqueId);
+	bool IsPaused(uint64 uniqueId);
 
 	void ResumeAll();
 	void Resume(uint64 uniqueId);
@@ -83,7 +84,7 @@ public:
 	TSharedPtr<FQTweenInstance> GetTween(const FQTweenHandle& Tween);
 	FQTweenHandle PushNewTween(UObject* Obj, const FVector& To, float Time, TSharedPtr<FQTweenInstance> Tween);
 	FQTweenHandle PushNewTween(UObject* Obj, const FVector& To, float Time, const FQTweenHandle& Tween);
-	TSharedPtr<FQTweenSequence> Sequence(bool initSeq = true);
+	TSharedPtr<FQTweenSequence> Sequence(bool InInitSeq = true);
 
 #if WITH_EDITOR
 	void RegisterActiveTimer();
@@ -92,37 +93,37 @@ public:
 #endif
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle Alpha(UObject* obj, float to, float time);
+	FQTweenHandle Alpha(UObject* Obj, float InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle Colour(UObject* obj, const FLinearColor& to, float time);
+	FQTweenHandle Colour(UObject* Obj, const FLinearColor& InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle Move(UObject* obj, FVector to, float time);
+	FQTweenHandle Move(UObject* Obj, FVector InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle MoveBy(UObject* obj, FVector delta, float time);
+	FQTweenHandle MoveBy(UObject* Obj, FVector InDelta, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle Rotate(UObject* obj, FVector to, float time);
+	FQTweenHandle Rotate(UObject* Obj, FVector InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween")
-	FQTweenHandle Scale(UObject* obj, FVector to, float time);
+	FQTweenHandle Scale(UObject* Obj, FVector InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenFloat", ScriptName = "TweenFloat", Keywords = "float"))
-	FQTweenHandle TweenFloat(float from, float to, float time);
+	FQTweenHandle TweenFloat(float InFrom, float InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenFloatFromTo", ScriptName = "TweenFloatFromTo", Keywords = "float"))
-	FQTweenHandle TweenFloatFromTo(UObject* obj, float from, float to, float time);
+	FQTweenHandle TweenFloatFromTo(UObject* Obj, float InFrom, float InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenVector2D", ScriptName = "TweenVector2D", Keywords = "vector2d"))
-	FQTweenHandle TweenVector2D(UObject* obj, FVector2D from, FVector2D to, float time);
+	FQTweenHandle TweenVector2D(UObject* Obj, FVector2D InFrom, FVector2D InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenVector", ScriptName = "TweenVector", Keywords = "vector"))
-	FQTweenHandle TweenVector(UObject* obj, FVector from, FVector to, float time);
+	FQTweenHandle TweenVector(UObject* Obj, FVector InFrom, FVector InTo, float InTime);
 
 	UFUNCTION(BlueprintCallable, Category="QTween", meta = (DisplayName = "TweenColor", ScriptName = "TweenColor", Keywords = "color"))
-	FQTweenHandle TweenColor(UObject* obj, FLinearColor from, FLinearColor to, float time);
+	FQTweenHandle TweenColor(UObject* Obj, FLinearColor InFrom, FLinearColor InTo, float InTime);
 
 
 
@@ -137,7 +138,7 @@ public:
 		return PushNewTween(obj, FVector::ZeroVector, delayTime, tween);
 	}
 
-	static TArray<FVector>& Add(TArray<FVector>& a, const FVector& b);
+	static TArray<FVector>& Add(TArray<FVector>& VecA, const FVector& VecB);
 	static float ClosestRot(float from, float to);
 public:
     UPROPERTY()
@@ -153,8 +154,10 @@ public:
 	float DtEstimated;
 	float DtManual;
 private:
-	void LogError(FString error) const;
+	void LogError(FString InError) const;
 	void IncreaseGlobalCounter();
+	void DestroyTweenInstance(FQTweenInstance* InstancePtr);
+	void DestroyTweenSequence(FQTweenSequence* SequencePtr);
 private:
 	TArray<FQTweenInstance> PoolTweens;
 	TArray<TSharedPtr<FQTweenInstance>> TweensPtr;
@@ -177,6 +180,7 @@ private:
 	TArray<uint64> TweensFinishedIds;
 
 	bool bInitialized = false;
+	bool bPoolInited = false;
 
 	/** Whether the active timer is currently registered */
 	bool bIsActiveTimerRegistered = false;

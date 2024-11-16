@@ -44,8 +44,8 @@ TSharedRef<FQTweenBase> FQTweenBase::SetID(uint32 InID, uint32 InGlobalCounter)
 //-------------------------------------------------------------------------
 
 float FQTweenInstance::Val = 0.f;
-float FQTweenInstance::DT = 0.f;
-FVector FQTweenInstance::NewVector = FVector::ZeroVector;
+
+
 TArray<IQTweenEasing*> FQTweenInstance::EasingFuncList;
 
 
@@ -58,7 +58,6 @@ FQTweenInstance::FQTweenInstance()
 	  , bUsesNormalDt(0)
 	  , bHasInitialized(0)
 	  , bHasExtraOnCompletes(0)
-	  , bHasPhysics(0)
 	  , bOnCompleteOnRepeat(0)
 	  , bOnCompleteOnStart(0)
 	  , bUseRecursion(0)
@@ -69,7 +68,6 @@ FQTweenInstance::FQTweenInstance()
 	  , Delay(0.f)
 	  , Time(0.f)
 	  , Speed(1.f)
-	  , LastVal(0.f)
 	  , Direction(0.f)
 	  , DirectionLast(0.f)
 	  , Overshoot(0.f)
@@ -111,7 +109,6 @@ void FQTweenInstance::ResetTween()
 	bUsesNormalDt = true;
 	Passed = 0.f;
 	Delay = 0.f;
-	LastVal = 0.f;
 	bHasUpdateCallback = false;
 	bUseEstimatedTime = false;
 	bUseFrames = false;
@@ -174,9 +171,9 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetFollow()
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetOffset(const FVector& offset)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetOffset(const FVector& InOffset)
 {
-	To = offset;
+	To = InOffset;
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -188,9 +185,9 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetCallback()
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetTarget(UObject* obj)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetTarget(UObject* Obj)
 {
-	Owner = obj;
+	Owner = Obj;
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -216,15 +213,15 @@ TSharedRef<FQTweenInstance> FQTweenInstance::Resume()
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetAxis(const FVector& axis)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetAxis(const FVector& InAxis)
 {
-	Axis = axis;
+	Axis = InAxis;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetDelay(float delayTime)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetDelay(float IndelayTime)
 {
-	Delay = delayTime;
+	Delay = IndelayTime;
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -291,58 +288,73 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetEase(EQTweenType InEaseType)
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetEaseCurve(UCurveFloat* curve)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetEaseCurve(UCurveFloat* InCurve)
 {
-	AnimCurve = curve;
+	AnimCurve = InCurve;
 	EaseType = EQTweenType::AnimationCurve;
 	EaseMethod = &FQTweenInstance::TweenOnCurve;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetScale(float fScale)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetScale(float InScale)
 {
-	this->Scale = fScale;
+	this->Scale = InScale;
 	return SharedThis<FQTweenInstance>(this);
 }
 
 TSharedRef<FQTweenInstance> FQTweenInstance::SetScale()
 {
 	Type = EQTweenAction::SCALE;
-	InitInternal = [this]()
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
+	InitInternal = [Instance]()
 		{
-			if (Owner != nullptr && Owner.IsValid())
+			if (Instance.IsValid() && Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
 			{
-				this->From = FQTweenPropAccessor::GetScale(Owner.Get());
+				Instance.Pin()->From = FQTweenPropAccessor::GetScale(Instance.Pin()->Owner.Get());
 			}
 		};
-
-	EaseInternal = [this]()
+	
+	EaseInternal = [Instance]()
+	{
+		if (Instance.IsValid() && Instance.Pin()->Owner.IsValid())
 		{
-			NewVector = (this->*EaseMethod)();
-			if (Owner != nullptr && Owner.IsValid())
+			FQTweenInstance* Ins = Instance.Pin().Get();
+			const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+			const FVector NewVector = (Ins->*EaseMethodFunc)();
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetScale(Owner.Get(), NewVector);
+				FQTweenPropAccessor::SetScale(Instance.Pin()->Owner.Get(), NewVector);
 			}
-		};
+		}
+	};
 	return SharedThis<FQTweenInstance>(this);
 }
 
 TSharedRef<FQTweenInstance> FQTweenInstance::SetCallbackColor()
 {
 	Type = EQTweenAction::CALLBACK_COLOR;
-	InitInternal = [this]()
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
+	InitInternal = [Instance]()
 		{
-			this->Diff = FVector(1, 0, 0);
+			if(Instance.IsValid())
+			{
+				Instance.Pin()->Diff = FVector(1, 0, 0);
+			}
 		};
 
-	EaseInternal = [this]()
+	EaseInternal = [Instance]()
 		{
-			NewVector = (this->*EaseMethod)();
-			float Factor = NewVector.X;
-			FLinearColor toColor = TweenColor(SharedThis(this), Factor);
-			if (Owner != nullptr && Owner.IsValid())
+			if(Instance.IsValid())
 			{
-				FQTweenPropAccessor::SetColor(Owner.Get(), toColor);
+				FQTweenInstance* Ins = Instance.Pin().Get();
+				const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+				FVector NewVector = (Ins->*EaseMethodFunc)();
+				float Factor = NewVector.X;
+				FLinearColor toColor = TweenColor(Instance.Pin().ToSharedRef(), Factor);
+				if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+				{
+					FQTweenPropAccessor::SetColor(Instance.Pin()->Owner.Get(), toColor);
+				}
 			}
 		};
 
@@ -357,48 +369,48 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetFromColor(const FLinearColor& co
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetTo(const FVector& vTo)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetTo(const FVector& InTo)
 {
 	if (bHasInitialized)
 	{
-		this->To = vTo;
-		Diff = vTo - From;
+		this->To = InTo;
+		Diff = InTo - From;
 	}
 	else
 	{
-		this->To = vTo;
+		this->To = InTo;
 	}
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetFrom(const FVector& vFrom)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetFrom(const FVector& InFrom)
 {
 	if (Owner != nullptr && Owner.IsValid())
 	{
 		Init();
 	}
-	this->From = vFrom;
-	Diff = To - vFrom;
+	this->From = InFrom;
+	Diff = To - InFrom;
 	DiffDiv2 = Diff * 0.5f;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetOvershoot(float over)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetOvershoot(float bInOver)
 {
-	this->Overshoot = over;
+	this->Overshoot = bInOver;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetPeriod(float fPeriod)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetPeriod(float InPeriod)
 {
-	this->Period = fPeriod;
+	this->Period = InPeriod;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetDiff(const FVector& vDiff)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetDiff(const FVector& InDiff)
 {
-	this->Diff = vDiff;
-	this->DiffDiv2 = vDiff * 0.5f;
+	this->Diff = InDiff;
+	this->DiffDiv2 = InDiff * 0.5f;
 	To = From + Diff;
 	return SharedThis<FQTweenInstance>(this);
 }
@@ -409,23 +421,23 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetHasInitialized(bool InInitialize
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetPassed(float fPassed)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetPassed(float InPassed)
 {
-	Passed = fPassed;
+	Passed = InPassed;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetTime(float fTime)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetTime(float InTime)
 {
-	float PassedTimeRatio = Passed / fTime;
-	Passed = fTime * PassedTimeRatio;
-	Time = fTime;
+	float PassedTimeRatio = Passed / InTime;
+	Passed = InTime * PassedTimeRatio;
+	Time = InTime;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetSpeed(float fTime)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetSpeed(float InTime)
 {
-	this->Speed = fTime;
+	this->Speed = InTime;
 	
 	if (bHasInitialized)
 	{
@@ -435,11 +447,11 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetSpeed(float fTime)
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetRepeat(int32 nRepeat)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetRepeat(int32 InRepeat)
 {
-	LoopCount = nRepeat;
-	if (nRepeat > 1 && LoopType == EQTweenLoopType::Once
-		|| (nRepeat < 0 && LoopType == EQTweenLoopType::Once))
+	LoopCount = InRepeat;
+	if (InRepeat > 1 && LoopType == EQTweenLoopType::Once
+		|| (InRepeat < 0 && LoopType == EQTweenLoopType::Once))
 	{
 		LoopType = EQTweenLoopType::Clamp;
 	}
@@ -449,9 +461,9 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetRepeat(int32 nRepeat)
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopType(EQTweenLoopType eLoopType)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopType(EQTweenLoopType ELoopType)
 {
-	this->LoopType = eLoopType;
+	this->LoopType = ELoopType;
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -483,9 +495,9 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetUseManualTime(bool InUseManualTi
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopCount(int32 count)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopCount(int32 InCount)
 {
-	LoopCount = count;
+	LoopCount = InCount;
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -495,48 +507,48 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopOnce()
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopClamp(int32 loops)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopClamp(int32 InLoops)
 {
 	LoopType = EQTweenLoopType::Clamp;
-	LoopCount = loops == 0 ? 1 : loops;
+	LoopCount = InLoops == 0 ? 1 : InLoops;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopPingPong(int32 loops)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetLoopPingPong(int32 InLoops)
 {
 	LoopType = EQTweenLoopType::PingPong;
-	LoopCount = loops < 1 ? -1 : loops * 2;
+	LoopCount = InLoops < 1 ? -1 : InLoops * 2;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetPoint(const FVector& point)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetPoint(const FVector& InPoint)
 {
-	Point = point;
+	Point = InPoint;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetOnCompleteOnRepeat(bool isOn)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetOnCompleteOnRepeat(bool bIsOn)
 {
-	bOnCompleteOnRepeat = isOn;
+	bOnCompleteOnRepeat = bIsOn;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetOnCompleteOnStart(bool isOn)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetOnCompleteOnStart(bool bIsOn)
 {
-	bOnCompleteOnStart = isOn;
+	bOnCompleteOnStart = bIsOn;
 	return SharedThis<FQTweenInstance>(this);
 }
 
-TSharedRef<FQTweenInstance> FQTweenInstance::SetDirection(float dir)
+TSharedRef<FQTweenInstance> FQTweenInstance::SetDirection(float InDir)
 {
 	if (Direction != -1.f && Direction != 1.f)
 	{
 		return SharedThis<FQTweenInstance>(this);
 	}
 
-	if (Direction != dir)
+	if (Direction != InDir)
 	{
-		Direction = dir;
+		Direction = InDir;
 	}
 	return SharedThis<FQTweenInstance>(this);
 }
@@ -550,22 +562,31 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetRecursive(bool InUseRecursive)
 TSharedRef<FQTweenInstance> FQTweenInstance::SetAlpha()
 {
 	Type = EQTweenAction::ALPHA;
-	InitInternal = [this]()
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
+	InitInternal = [Instance]()
+	{
+		if (Instance.IsValid())
 		{
-			if (Owner != nullptr && Owner.IsValid())
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
 			{
-				this->From = FVector(FQTweenPropAccessor::GetAlpha(Owner.Get()), 0, 0);
+				Instance.Pin()->From = FVector(FQTweenPropAccessor::GetAlpha(Instance.Pin()->Owner.Get()), 0, 0);
 			}
-		};
+		}
+	};
 
-	EaseInternal = [this]()
+	EaseInternal = [Instance]()
+	{
+		if (Instance.IsValid())
 		{
-			NewVector = (this->*EaseMethod)();
-			if (Owner != nullptr && Owner.IsValid())
+			FQTweenInstance* Ins = Instance.Pin().Get();
+			const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+			FVector NewVector = (Ins->*EaseMethodFunc)();
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetAlpha(Owner.Get(), NewVector.X);
+				FQTweenPropAccessor::SetAlpha(Instance.Pin()->Owner.Get(), NewVector.X);
 			}
-		};
+		}
+	};
 
 	return SharedThis<FQTweenInstance>(this);
 }
@@ -573,22 +594,32 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetAlpha()
 TSharedRef<FQTweenInstance> FQTweenInstance::SetColor()
 {
 	Type = EQTweenAction::COLOR;
-	InitInternal = [this]()
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
+	
+	InitInternal = [Instance]()
 		{
-			if (Owner != nullptr && Owner.IsValid())
+			if(Instance.IsValid())
 			{
-				SetFromColor(FQTweenPropAccessor::GetColor(Owner.Get()));
+				if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+				{
+					Instance.Pin()->SetFromColor(FQTweenPropAccessor::GetColor(Instance.Pin()->Owner.Get()));
+				}
 			}
 		};
 
-	EaseInternal = [this]()
+	EaseInternal = [Instance]()
 		{
-			NewVector = (this->*EaseMethod)();
-			float Factor = NewVector.X;
-			FLinearColor toColor = TweenColor(SharedThis(this), Factor);
-			if (Owner != nullptr && Owner.IsValid())
+			if(Instance.IsValid())
 			{
-				FQTweenPropAccessor::SetColor(Owner.Get(), toColor);
+				FQTweenInstance* Ins = Instance.Pin().Get();
+				const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+				FVector NewVector = (Ins->*EaseMethodFunc)();
+				float Factor = NewVector.X;
+				FLinearColor toColor = TweenColor(Instance.Pin().ToSharedRef(), Factor);
+				if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+				{
+					FQTweenPropAccessor::SetColor(Instance.Pin()->Owner.Get(), toColor);
+				}
 			}
 		};
 	return SharedThis<FQTweenInstance>(this);
@@ -597,44 +628,67 @@ TSharedRef<FQTweenInstance> FQTweenInstance::SetColor()
 TSharedRef<FQTweenInstance> FQTweenInstance::SetMove()
 {
 	Type = EQTweenAction::MOVE;
-    InitInternal = [this]() {
-        if (Owner != nullptr && Owner.IsValid())
-        {
-            From = FQTweenPropAccessor::GetPosition(Owner.Get());
-        }
-        };
-    EaseInternal = [this]() {
-        NewVector = (this->*EaseMethod)();
-        if (Owner != nullptr && Owner.IsValid())
-        {
-			FQTweenPropAccessor::SetPosition(Owner.Get(), NewVector);
-        }
-        };
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
+	
+    InitInternal = [Instance]()
+    {
+	    if (Instance.IsValid())
+	    {
+		    if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+		    {
+			    Instance.Pin()->From = FQTweenPropAccessor::GetPosition(Instance.Pin()->Owner.Get());
+		    }
+	    }
+    };
+	EaseInternal = [Instance]()
+	{
+		if (Instance.IsValid())
+		{
+			FQTweenInstance* Ins = Instance.Pin().Get();
+			const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+			FVector NewVector = (Ins->*EaseMethodFunc)();
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+			{
+				FQTweenPropAccessor::SetPosition(Instance.Pin()->Owner.Get(), NewVector);
+			}
+		}
+	};
     return SharedThis<FQTweenInstance>(this);
 }
 
 TSharedRef<FQTweenInstance> FQTweenInstance::SetRotate()
 {
 	Type = EQTweenAction::ROTATE;
-	InitInternal = [this]()
-		{
-			if (this->Owner != nullptr && this->Owner.IsValid())
-			{
-				this->From = FQTweenPropAccessor::GetRotate(this->Owner.Get());
-				this->To = FVector(UQTweenEngineSubsystem::ClosestRot(this->From.X, this->To.X),
-					UQTweenEngineSubsystem::ClosestRot(this->From.Y, this->To.Y),
-					UQTweenEngineSubsystem::ClosestRot(this->From.Z, this->To.Z));
-			}
-		};
+	TWeakPtr<FQTweenInstance> Instance = SharedThis<FQTweenInstance>(this);
 
-	EaseInternal = [this]()
+	InitInternal = [Instance]()
+	{
+		if (Instance.IsValid())
 		{
-			NewVector = (this->*EaseMethod)();
-			if (Owner != nullptr && Owner.IsValid())
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
 			{
-				FQTweenPropAccessor::SetRotate(Owner.Get(), NewVector);
+				Instance.Pin()->From = FQTweenPropAccessor::GetRotate(Instance.Pin()->Owner.Get());
+				Instance.Pin()->To = FVector(
+					UQTweenEngineSubsystem::ClosestRot(Instance.Pin()->From.X, Instance.Pin()->To.X),
+					UQTweenEngineSubsystem::ClosestRot(Instance.Pin()->From.Y, Instance.Pin()->To.Y),
+					UQTweenEngineSubsystem::ClosestRot(Instance.Pin()->From.Z, Instance.Pin()->To.Z));
 			}
-		};
+		}
+	};
+
+	EaseInternal = [Instance]()
+	{
+		if (Instance.IsValid())
+		{
+			FQTweenInstance* Ins = Instance.Pin().Get();
+			const auto& EaseMethodFunc = Instance.Pin()->EaseMethod;
+			FVector NewVector = (Ins->*EaseMethodFunc)();
+			if (Instance.Pin()->Owner != nullptr && Instance.Pin()->Owner.IsValid())
+			{
+				FQTweenPropAccessor::SetRotate(Instance.Pin()->Owner.Get(), NewVector);
+			}
+		}
+	};
 	return SharedThis<FQTweenInstance>(this);
 }
 
@@ -712,7 +766,7 @@ void FQTweenInstance::InitSpeed()
 
 void FQTweenInstance::Callback()
 {
-	NewVector = (this->*EaseMethod)();
+	FVector NewVector = (this->*EaseMethod)();
 	Val = NewVector.X;
 }
 
@@ -810,14 +864,14 @@ UObject* FQTweenInstance::GetOwner() const
 	return nullptr;
 }
 
-bool FQTweenInstance::IsValid(const TSharedPtr<FQTweenInstance> Tween)
+bool FQTweenInstance::IsValid(const TSharedPtr<FQTweenInstance> Instance)
 {
-	if(!Tween.IsValid())
+	if(!Instance.IsValid())
 	{
 		return false;
 	}
 	
-	if (nullptr == Tween->Owner || !Tween->Owner.IsValid())
+	if (nullptr == Instance->Owner || !Instance->Owner.IsValid())
 	{
 		return false;
 	}
@@ -825,14 +879,14 @@ bool FQTweenInstance::IsValid(const TSharedPtr<FQTweenInstance> Tween)
 	return true;
 }
 
-bool FQTweenInstance::IsValid(const FQTweenInstance* Tween)
+bool FQTweenInstance::IsValid(const FQTweenInstance* Instance)
 {
-	if(Tween == nullptr)
+	if(Instance == nullptr)
 	{
 		return false;
 	}
 	
-	if (nullptr == Tween->Owner || !Tween->Owner.IsValid())
+	if (nullptr == Instance->Owner || !Instance->Owner.IsValid())
 	{
 		return false;
 	}
@@ -840,11 +894,10 @@ bool FQTweenInstance::IsValid(const FQTweenInstance* Tween)
 	return true;
 }
 
-void FQTweenInstance::SetEaseInternal(EQTweenEasingFunc func, EQTweenEasingType InType)
+void FQTweenInstance::SetEaseInternal(EQTweenEasingFunc EasingFunc, EQTweenEasingType InType)
 {
-	int32 index = static_cast<int32>(func);
-	if (0 <= index && index < static_cast<int32>(EQTweenEasingFunc::Max))
-		CurEasing = EasingFuncList[index];
+	if (int32 Index = static_cast<int32>(EasingFunc); 0 <= Index && Index < static_cast<int32>(EQTweenEasingFunc::Max))
+		CurEasing = EasingFuncList[Index];
 	else
 		CurEasing = nullptr;
 	CurEasingType = InType;
@@ -872,13 +925,14 @@ void FQTweenInstance::SetEaseSprint()
 
 FVector FQTweenInstance::TweenOnCurve()
 {
-	float k = RatioPassed;
+	SCOPED_NAMED_EVENT(QTween_TweenOnCurve, FColor::Cyan);
+	float Ratio = RatioPassed;
 	if (AnimCurve.IsValid() && AnimCurve->IsValidLowLevel())
 	{
-		k = AnimCurve->GetFloatValue(RatioPassed);
+		Ratio = AnimCurve->GetFloatValue(RatioPassed);
 	}
 
-	return From + Diff * k;
+	return From + Diff * Ratio;
 }
 
 float FQTweenInstance::TweenOnCurve(float ratioPassed) const
@@ -905,6 +959,7 @@ FVector FQTweenInstance::TweenOnCurve(float ratioPassed, FVector& OutVector) con
 
 FVector FQTweenInstance::TweenByEasingType()
 {
+	SCOPED_NAMED_EVENT(QTween_TweenbyEasingType, FColor::Orange);
 	float k = RatioPassed;
 
 	if (CurEasing != nullptr)
@@ -928,11 +983,11 @@ FVector FQTweenInstance::TweenByEasingType()
 	return From + Diff * k;
 }
 
-FLinearColor FQTweenInstance::TweenColor(TSharedRef<FQTweenInstance> Tween, float Factor)
+FLinearColor FQTweenInstance::TweenColor(TSharedRef<FQTweenInstance> Instance, float Factor)
 {
-	FVector rgb = Tween->Point * Factor + Tween->Axis * (1 - Factor);
-	float a = Tween->To.Y * Factor + Tween->From.Y * (1 - Factor);
-	return FLinearColor(rgb.X, rgb.Y, rgb.Z, a);
+	FVector RGB = Instance->Point * Factor + Instance->Axis * (1 - Factor);
+	float Alpha = Instance->To.Y * Factor + Instance->From.Y * (1 - Factor);
+	return FLinearColor(RGB.X, RGB.Y, RGB.Z, Alpha);
 }
 
 bool FQTweenHandle::IsValid() const

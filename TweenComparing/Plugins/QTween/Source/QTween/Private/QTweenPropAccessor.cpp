@@ -8,67 +8,77 @@
 // FTweenPropGetterSetter
 //-----------------------------------------------------------------------
 
-FVector FQTweenActorPropAccessor::GetPosition(UObject* obj)
+FVector FQTweenActorPropAccessor::GetPosition(UObject* Obj)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		return actor->GetActorLocation();
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+		return Actor->GetActorLocation();
 	return FVector::ZeroVector;
 }
 
-void FQTweenActorPropAccessor::SetPosition(UObject* obj, const FVector& pos)
+void FQTweenActorPropAccessor::SetPosition(UObject* Obj, const FVector& Pos)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		actor->SetActorLocation(pos);
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+	{
+		Actor->SetActorLocation(Pos);
+	}
 }
 
-FVector FQTweenActorPropAccessor::GetScale(UObject* obj)
+FVector FQTweenActorPropAccessor::GetScale(UObject* Obj)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		return actor->GetActorScale3D();
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+	{
+		return Actor->GetActorScale3D();
+	}
 	return FVector::ZeroVector;
 }
 
-void FQTweenActorPropAccessor::SetScale(UObject* obj, const FVector& scale)
+void FQTweenActorPropAccessor::SetScale(UObject* Obj, const FVector& Scale)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		actor->SetActorScale3D(scale);
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+	{
+		Actor->SetActorScale3D(Scale);
+	}
 }
 
-FVector FQTweenActorPropAccessor::GetRotate(UObject* obj)
+FVector FQTweenActorPropAccessor::GetRotate(UObject* Obj)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		return actor->GetActorRotation().Euler();
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+	{
+		return Actor->GetActorRotation().Euler();
+	}
 	return FVector::ZeroVector;
 }
 
-void FQTweenActorPropAccessor::SetRotate(UObject* obj, const FVector& rotate)
+void FQTweenActorPropAccessor::SetRotate(UObject* Obj, const FVector& Rotator)
 {
-	auto actor = Cast<AActor>(obj);
-	if (nullptr != actor)
-		actor->SetActorRotation(FRotator(rotate.Y, rotate.Z, rotate.X));
+	auto Actor = Cast<AActor>(Obj);
+	if (nullptr != Actor)
+	{
+		Actor->SetActorRotation(FRotator(Rotator.Y, Rotator.Z, Rotator.X));
+	}
 }
 
-float FQTweenActorPropAccessor::GetAlpha(UObject* obj)
+float FQTweenActorPropAccessor::GetAlpha(UObject* Obj)
 {
 	return 1;
 }
 
-void FQTweenActorPropAccessor::SetAlpha(UObject* obj, float alpha)
+void FQTweenActorPropAccessor::SetAlpha(UObject* Obj, float Alpha)
 {
 
 }
 
-FLinearColor FQTweenActorPropAccessor::GetColor(UObject* obj)
+FLinearColor FQTweenActorPropAccessor::GetColor(UObject* Obj)
 {
 	return FLinearColor::White;
 }
 
-void FQTweenActorPropAccessor::SetColor(UObject* obj, const FLinearColor& color)
+void FQTweenActorPropAccessor::SetColor(UObject* Obj, const FLinearColor& Color)
 {
 
 }
@@ -78,123 +88,140 @@ void FQTweenActorPropAccessor::SetColor(UObject* obj, const FLinearColor& color)
 // FTweenWidgetPropGetterSetter
 //-----------------------------------------------------------------------
 
-FVector FQTweenWidgetPropAccessor::GetPosition(UObject* obj)
+FVector FQTweenWidgetPropAccessor::GetPosition(UObject* Obj)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
-		return FVector(widget->GetRenderTransform().Translation, 0);
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
+	{
+		return FVector(Widget->GetRenderTransform().Translation, 0);
+	}
 	return FVector::ZeroVector;
 }
 
-void FQTweenWidgetPropAccessor::SetPosition(UObject* obj, const FVector& pos)
+void FQTweenWidgetPropAccessor::SetPosition(UObject* Obj, const FVector& Pos)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
 	{
-		widget->SetRenderTranslation(FVector2D(pos.X, pos.Y));
+		Widget->SetRenderTranslation(FVector2D(Pos.X, Pos.Y));
 	}
 }
 
-FVector FQTweenWidgetPropAccessor::GetScale(UObject* obj)
+FVector FQTweenWidgetPropAccessor::GetScale(UObject* Obj)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
-		return FVector(widget->GetRenderTransform().Scale, 0.f);
-	return FVector::ZeroVector;
-}
-
-void FQTweenWidgetPropAccessor::SetScale(UObject* obj, const FVector& scale)
-{
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
-		widget->SetRenderScale(FVector2D(scale.X, scale.Y));
-}
-
-FVector FQTweenWidgetPropAccessor::GetRotate(UObject* obj)
-{
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
-		return FVector(widget->GetRenderTransformAngle(), 0, 0);
-	return FVector::ZeroVector;
-}
-
-void FQTweenWidgetPropAccessor::SetRotate(UObject* obj, const FVector& rotate)
-{
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
-		widget->SetRenderTransformAngle(rotate.X);
-}
-
-float FQTweenWidgetPropAccessor::GetAlpha(UObject* obj)
-{
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
 	{
-		return widget->GetRenderOpacity();
+		return FVector(Widget->GetRenderTransform().Scale, 0.f);
+	}
+	return FVector::ZeroVector;
+}
+
+void FQTweenWidgetPropAccessor::SetScale(UObject* Obj, const FVector& Scale)
+{
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
+	{
+		Widget->SetRenderScale(FVector2D(Scale.X, Scale.Y));
+	}
+}
+
+FVector FQTweenWidgetPropAccessor::GetRotate(UObject* Obj)
+{
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
+	{
+		return FVector(Widget->GetRenderTransformAngle(), 0, 0);
+	}
+	return FVector::ZeroVector;
+}
+
+void FQTweenWidgetPropAccessor::SetRotate(UObject* Obj, const FVector& Rotator)
+{
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
+	{
+		Widget->SetRenderTransformAngle(Rotator.X);
+	}
+}
+
+float FQTweenWidgetPropAccessor::GetAlpha(UObject* Obj)
+{
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
+	{
+		return Widget->GetRenderOpacity();
 	}
 	return 1;
 }
 
-void FQTweenWidgetPropAccessor::SetAlpha(UObject* obj, float alpha)
+void FQTweenWidgetPropAccessor::SetAlpha(UObject* Obj, float Alpha)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr != widget)
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr != Widget)
 	{
-		widget->SetRenderOpacity(alpha);
+		Widget->SetRenderOpacity(Alpha);
 	}
 }
 
-FLinearColor FQTweenWidgetPropAccessor::GetColor(UObject* obj)
+FLinearColor FQTweenWidgetPropAccessor::GetColor(UObject* Obj)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (widget)
+	if (auto* Widget = Cast<UWidget>(Obj))
 	{
-		if (widget->IsA(UImage::StaticClass()))
+		if (Widget->IsA(UImage::StaticClass()))
 		{
-			UImage* img = Cast<UImage>(widget);
-			if (img != nullptr)
-				return img->GetColorAndOpacity();
+			if (UImage* Image = Cast<UImage>(Widget); Image != nullptr)
+			{
+				return Image->GetColorAndOpacity();
+			}
 		}
-		else if (widget->IsA(UButton::StaticClass()))
+		else if (Widget->IsA(UButton::StaticClass()))
 		{
-			UButton* btn = Cast<UButton>(widget);
-			if (btn != nullptr)
-				return btn->GetColorAndOpacity();
+			if (UButton* Button = Cast<UButton>(Widget); Button != nullptr)
+			{
+				return Button->GetColorAndOpacity();
+			}
 		}
-		else if (widget->IsA(UTextBlock::StaticClass()))
+		else if (Widget->IsA(UTextBlock::StaticClass()))
 		{
-			UTextBlock* text = Cast<UTextBlock>(widget);
-			if (text != nullptr)
-				return text->GetColorAndOpacity().GetSpecifiedColor();
+			if (UTextBlock* Text = Cast<UTextBlock>(Widget); Text != nullptr)
+			{
+				return Text->GetColorAndOpacity().GetSpecifiedColor();
+			}
 		}
 	}
 
 	return FLinearColor::White;
 }
 
-void FQTweenWidgetPropAccessor::SetColor(UObject* obj, const FLinearColor& color)
+void FQTweenWidgetPropAccessor::SetColor(UObject* Obj, const FLinearColor& Color)
 {
-	auto widget = Cast<UWidget>(obj);
-	if (nullptr == widget)
+	auto Widget = Cast<UWidget>(Obj);
+	if (nullptr == Widget)
+	{
 		return;
+	}
 
-	if (widget->IsA(UImage::StaticClass()))
+	if (Widget->IsA(UImage::StaticClass()))
 	{
-		UImage* img = Cast<UImage>(widget);
-		if (nullptr != img)
-			img->SetColorAndOpacity(color);
+		if (UImage* Image = Cast<UImage>(Widget); nullptr != Image)
+		{
+			Image->SetColorAndOpacity(Color);
+		}
 	}
-	else if (widget->IsA(UButton::StaticClass()))
+	else if (Widget->IsA(UButton::StaticClass()))
 	{
-		UButton* btn = Cast<UButton>(widget);
-		if (nullptr != btn)
-			btn->SetColorAndOpacity(color);
+		if (UButton* Button = Cast<UButton>(Widget); nullptr != Button)
+		{
+			Button->SetColorAndOpacity(Color);
+		}
 	}
-	else if (widget->IsA(UTextBlock::StaticClass()))
+	else if (Widget->IsA(UTextBlock::StaticClass()))
 	{
-		UTextBlock* txt = Cast<UTextBlock>(widget);
-		if (nullptr != txt)
-			txt->SetColorAndOpacity(color);
+		if (UTextBlock* Text = Cast<UTextBlock>(Widget); nullptr != Text)
+		{
+			Text->SetColorAndOpacity(Color);
+		}
 	}
 	else
 	{
@@ -207,102 +234,121 @@ void FQTweenWidgetPropAccessor::SetColor(UObject* obj, const FLinearColor& color
 //-----------------------------------------------------------------------
 
 FQTweenActorPropAccessor FQTweenPropAccessor::ActorGetterSetter;
-FQTweenWidgetPropAccessor FQTweenPropAccessor::WidgetGettterSetter;
+FQTweenWidgetPropAccessor FQTweenPropAccessor::WidgetGetterSetter;
 
-FVector FQTweenPropAccessor::GetPosition(UObject* obj)
+FVector FQTweenPropAccessor::GetPosition(UObject* Obj)
 {
-	IQTweenPropAccessor* getter = GetValidGetterSetter(obj);
-	if (nullptr != getter)
-		return getter->GetPosition(obj);
+	if (IQTweenPropAccessor* Getter = GetValidGetterSetter(Obj); nullptr != Getter)
+	{
+		return Getter->GetPosition(Obj);
+	}
 	return FVector::ZeroVector;
 }
-void FQTweenPropAccessor::SetPosition(UObject* obj, const FVector& pos)
+void FQTweenPropAccessor::SetPosition(UObject* Obj, const FVector& Pos)
 {
-	IQTweenPropAccessor* setter = GetValidGetterSetter(obj);
-	if (nullptr != setter)
-		return setter->SetPosition(obj, pos);
+	SCOPED_NAMED_EVENT(QTween_PropAccessor_SetPosition, FColor::Emerald);
+	if (IQTweenPropAccessor* Setter = GetValidGetterSetter(Obj); nullptr != Setter)
+	{
+		return Setter->SetPosition(Obj, Pos);
+	}
 }
 
-FVector FQTweenPropAccessor::GetScale(UObject* obj)
+FVector FQTweenPropAccessor::GetScale(UObject* Obj)
 {
-	IQTweenPropAccessor* getter = GetValidGetterSetter(obj);
-	if (nullptr != getter)
-		return getter->GetScale(obj);
+	if (IQTweenPropAccessor* Getter = GetValidGetterSetter(Obj); nullptr != Getter)
+	{
+		return Getter->GetScale(Obj);
+	}
 	return FVector::ZeroVector;
 }
-void FQTweenPropAccessor::SetScale(UObject* obj, const FVector& pos)
+void FQTweenPropAccessor::SetScale(UObject* Obj, const FVector& Pos)
 {
-	IQTweenPropAccessor* setter = GetValidGetterSetter(obj);
-	if (nullptr != setter)
-		return setter->SetScale(obj, pos);
+	if (IQTweenPropAccessor* Setter = GetValidGetterSetter(Obj); nullptr != Setter)
+	{
+		return Setter->SetScale(Obj, Pos);
+	}
 }
 
-FVector FQTweenPropAccessor::GetRotate(UObject* obj)
+FVector FQTweenPropAccessor::GetRotate(UObject* Obj)
 {
-	IQTweenPropAccessor* getter = GetValidGetterSetter(obj);
-	if (nullptr != getter)
-		return getter->GetRotate(obj);
+	if (IQTweenPropAccessor* Getter = GetValidGetterSetter(Obj); nullptr != Getter)
+	{
+		return Getter->GetRotate(Obj);
+	}
 	return FVector::ZeroVector;
 }
-void FQTweenPropAccessor::SetRotate(UObject* obj, const FVector& pos)
+void FQTweenPropAccessor::SetRotate(UObject* Obj, const FVector& Pos)
 {
-	IQTweenPropAccessor* setter = GetValidGetterSetter(obj);
-	if (nullptr != setter)
-		return setter->SetRotate(obj, pos);
+	if (IQTweenPropAccessor* Setter = GetValidGetterSetter(Obj); nullptr != Setter)
+	{
+		return Setter->SetRotate(Obj, Pos);
+	}
 }
 
-float FQTweenPropAccessor::GetAlpha(UObject* obj)
+float FQTweenPropAccessor::GetAlpha(UObject* Obj)
 {
-	IQTweenPropAccessor* getter = GetValidGetterSetter(obj);
-	if (nullptr != getter)
-		return getter->GetAlpha(obj);
+	if (IQTweenPropAccessor* Getter = GetValidGetterSetter(Obj); nullptr != Getter)
+	{
+		return Getter->GetAlpha(Obj);
+	}
 	return 1.f;
 }
-void FQTweenPropAccessor::SetAlpha(UObject* obj, float alpha)
+void FQTweenPropAccessor::SetAlpha(UObject* Obj, float Alpha)
 {
-	IQTweenPropAccessor* setter = GetValidGetterSetter(obj);
-	if (nullptr != setter)
-		return setter->SetAlpha(obj, alpha);
+	if (IQTweenPropAccessor* Setter = GetValidGetterSetter(Obj); nullptr != Setter)
+	{
+		return Setter->SetAlpha(Obj, Alpha);
+	}
 }
 
-FLinearColor FQTweenPropAccessor::GetColor(UObject* obj)
+FLinearColor FQTweenPropAccessor::GetColor(UObject* Obj)
 {
-	IQTweenPropAccessor* getter = GetValidGetterSetter(obj);
-	if (nullptr != getter)
-		return getter->GetColor(obj);
+	if (IQTweenPropAccessor* Getter = GetValidGetterSetter(Obj); nullptr != Getter)
+	{
+		return Getter->GetColor(Obj);
+	}
 	return FLinearColor::White;
 }
-void FQTweenPropAccessor::SetColor(UObject* obj, const FLinearColor& color)
+void FQTweenPropAccessor::SetColor(UObject* Obj, const FLinearColor& Color)
 {
-	IQTweenPropAccessor* setter = GetValidGetterSetter(obj);
-	if (nullptr != setter)
-		return setter->SetColor(obj, color);
-}
-bool FQTweenPropAccessor::IsValidActor(UObject* obj)
-{
-	if (nullptr == obj || !obj->IsValidLowLevel())
-		return false;
-
-	return obj->IsA(AActor::StaticClass());
-}
-
-bool FQTweenPropAccessor::IsValidWidget(UObject* obj)
-{
-	if (nullptr == obj || !obj->IsValidLowLevel())
-		return false;
-
-	return obj->IsA(UWidget::StaticClass());
-}
-
-IQTweenPropAccessor* FQTweenPropAccessor::GetValidGetterSetter(UObject* obj)
-{
-	if (nullptr != obj && obj->IsValidLowLevel())
+	if (IQTweenPropAccessor* Setter = GetValidGetterSetter(Obj); nullptr != Setter)
 	{
-		if (obj->IsA(AActor::StaticClass()))
-			return &ActorGetterSetter;
-		else if (obj->IsA(UWidget::StaticClass()))
+		return Setter->SetColor(Obj, Color);
+	}
+}
+bool FQTweenPropAccessor::IsValidActor(UObject* Obj)
+{
+	if (nullptr == Obj || !Obj->IsValidLowLevel())
+	{
+		return false;
+	}
 
-			return &WidgetGettterSetter;
+	return Obj->IsA(AActor::StaticClass());
+}
+
+bool FQTweenPropAccessor::IsValidWidget(UObject* Obj)
+{
+	if (nullptr == Obj || !Obj->IsValidLowLevel())
+	{
+		return false;
+	}
+
+	return Obj->IsA(UWidget::StaticClass());
+}
+
+IQTweenPropAccessor* FQTweenPropAccessor::GetValidGetterSetter(UObject* Obj)
+{
+	if (nullptr != Obj && Obj->IsValidLowLevel())
+	{
+		if (Obj->IsA(AActor::StaticClass()))
+		{
+			return &ActorGetterSetter;
+		}
+
+		if (Obj->IsA(UWidget::StaticClass()))
+		{
+			return &WidgetGetterSetter;
+		}
 	}
 	return nullptr;
 }

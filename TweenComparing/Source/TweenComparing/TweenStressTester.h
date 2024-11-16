@@ -3,6 +3,7 @@
 #include "FCTween.h"
 #include "iTween.h"
 #include "iTweenEvent.h"
+#include "QTweenEngineSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "Interfaces/IPluginManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,7 @@ enum class ETweenPlugin : uint8
 	FCTween,
 	BUITween,
 	ITween,
+	QTween,
 };
 
 UCLASS()
@@ -68,6 +70,12 @@ public:
 		if(PluginToTest == ETweenPlugin::FCTween)
 		{
 			FCTween::EnsureCapacity(50, 50, NumTweensStartup + NumTweensPerFrame * 60 * 4, 10);
+		}
+
+
+		if(UQTweenEngineSubsystem* TweenSubsystem = UQTweenEngineSubsystem::Get(); TweenSubsystem != nullptr)
+		{
+			TweenSubsystem->Init(NumTweensStartup + NumTweensPerFrame * 60 * 4);
 		}
 	}
 
@@ -126,23 +134,33 @@ public:
 		FVector2d TweenFromLocation = FVector2d::ZeroVector;
 		FVector2d TweenToLocation = FVector2d(200.0f, 200.0f);
 
-		switch(PluginToTest)
+		switch (PluginToTest)
 		{
-			case ETweenPlugin::FCTween:
-				FCTween::Play(TweenFromLocation, TweenToLocation, [&](FVector2d t){
-					TestWidgetInstance->SetRenderTranslation(t);
-				}, 2.0f, EFCEase::OutQuad);
-				break;
-			case ETweenPlugin::BUITween:
-				UBUITween::Create(TestWidgetInstance, 2.0f)
-					.FromTranslation(TweenFromLocation)
-					.ToTranslation(TweenToLocation)
-					.Easing(EBUIEasingType::OutQuad)
-					.Begin();
-				break;
-			case ETweenPlugin::ITween:
-				UiTween::UMGRTMoveFromToSimple("", TestWidgetInstance, TweenFromLocation, TweenToLocation, 2.0f, ItweenEaseType::easeOutQuadratic);
-				break;
+		case ETweenPlugin::FCTween:
+			FCTween::Play(TweenFromLocation, TweenToLocation, [&](FVector2d t)
+			{
+				TestWidgetInstance->SetRenderTranslation(t);
+			}, 2.0f, EFCEase::OutQuad);
+			break;
+		case ETweenPlugin::BUITween:
+			UBUITween::Create(TestWidgetInstance, 2.0f)
+				.FromTranslation(TweenFromLocation)
+				.ToTranslation(TweenToLocation)
+				.Easing(EBUIEasingType::OutQuad)
+				.Begin();
+			break;
+		case ETweenPlugin::ITween:
+			UiTween::UMGRTMoveFromToSimple("", TestWidgetInstance, TweenFromLocation, TweenToLocation, 2.0f,
+			                               ItweenEaseType::easeOutQuadratic);
+			break;
+		case ETweenPlugin::QTween:
+			if (auto* TweenSubsystem = UQTweenEngineSubsystem::Get())
+			{
+				TweenSubsystem->Move(TestWidgetInstance, FVector(TweenToLocation.X, TweenToLocation.Y, 0), 2.0f)
+				              ->SetFrom(FVector(TweenFromLocation.X, TweenFromLocation.Y, 0))
+				              ->SetEase(EQTweenType::EaseOutQuad);
+			}
+			break;
 		}
 	}
 };

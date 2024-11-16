@@ -12,71 +12,72 @@
 class IQTweenPropAccessor
 {
 public:
-	virtual FVector GetPosition(UObject* obj) = 0;
-	virtual void SetPosition(UObject* obj, const FVector& pos) = 0;
+	virtual ~IQTweenPropAccessor() = default;
+	virtual FVector GetPosition(UObject* Obj) = 0;
+	virtual void SetPosition(UObject* Obj, const FVector& Pos) = 0;
 
-	virtual FVector GetScale(UObject* obj) = 0;
-	virtual void SetScale(UObject* obj, const FVector& pos) = 0;
+	virtual FVector GetScale(UObject* Obj) = 0;
+	virtual void SetScale(UObject* Obj, const FVector& Pos) = 0;
 
-	virtual FVector GetRotate(UObject* obj) = 0;
-	virtual void SetRotate(UObject* obj, const FVector& pos) = 0;
+	virtual FVector GetRotate(UObject* Obj) = 0;
+	virtual void SetRotate(UObject* Obj, const FVector& Pos) = 0;
 
-	virtual float GetAlpha(UObject* obj) = 0;
-	virtual void SetAlpha(UObject* obj, float alpha) = 0;
+	virtual float GetAlpha(UObject* Obj) = 0;
+	virtual void SetAlpha(UObject* Obj, float Alpha) = 0;
 
-	virtual FLinearColor GetColor(UObject* obj) = 0;
-	virtual void SetColor(UObject* obj, const FLinearColor& color) = 0;
+	virtual FLinearColor GetColor(UObject* Obj) = 0;
+	virtual void SetColor(UObject* Obj, const FLinearColor& Color) = 0;
 };
 
 class FQTweenActorPropAccessor : public IQTweenPropAccessor
 {
 public:
-	FVector GetPosition(UObject* obj) override;
-	void SetPosition(UObject* obj, const FVector& pos)override;
-	FVector GetScale(UObject* obj) override;
-	void SetScale(UObject* obj, const FVector& scale) override;
-	FVector GetRotate(UObject* obj) override;
-	void SetRotate(UObject* obj, const FVector& rotate) override;
-	float GetAlpha(UObject* obj) override;
-	void SetAlpha(UObject* obj, float alpha) override;
-	FLinearColor GetColor(UObject* obj) override;
-	void SetColor(UObject* obj, const FLinearColor& color) override;
+	virtual FVector GetPosition(UObject* Obj) override;
+	virtual void SetPosition(UObject* Obj, const FVector& Pos)override;
+	virtual FVector GetScale(UObject* Obj) override;
+	virtual void SetScale(UObject* Obj, const FVector& Scale) override;
+	virtual FVector GetRotate(UObject* Obj) override;
+	virtual void SetRotate(UObject* Obj, const FVector& Rotate) override;
+	virtual float GetAlpha(UObject* Obj) override;
+	virtual void SetAlpha(UObject* Obj, float Alpha) override;
+	virtual FLinearColor GetColor(UObject* Obj) override;
+	virtual void SetColor(UObject* Obj, const FLinearColor& Color) override;
 };
 
 class FQTweenWidgetPropAccessor : public IQTweenPropAccessor
 {
 public:
-	FVector GetPosition(UObject* obj) override;
-	void SetPosition(UObject* obj, const FVector& pos) override;
-	FVector GetScale(UObject* obj) override;
-	void SetScale(UObject* obj, const FVector& scale);
-	FVector GetRotate(UObject* obj);
-	void SetRotate(UObject* obj, const FVector& rotate);
-	float GetAlpha(UObject* obj);
-	void SetAlpha(UObject* obj, float alpha);
-	FLinearColor GetColor(UObject* obj);
-	void SetColor(UObject* obj, const FLinearColor& color);
+	virtual FVector GetPosition(UObject* Obj) override;
+	virtual void SetPosition(UObject* Obj, const FVector& Pos) override;
+	virtual FVector GetScale(UObject* Obj) override;
+	virtual void SetScale(UObject* Obj, const FVector& Scale) override;
+	virtual FVector GetRotate(UObject* Obj) override;
+	virtual void SetRotate(UObject* Obj, const FVector& Rotate) override;
+	virtual float GetAlpha(UObject* Obj) override;
+	virtual void SetAlpha(UObject* Obj, float Alpha) override;
+	virtual FLinearColor GetColor(UObject* Obj) override;
+	virtual void SetColor(UObject* Obj, const FLinearColor& Color) override;
 };
 
 
 class FQTweenPropAccessor
 {
 public:
-	static FVector GetPosition(UObject* obj);
-	static void SetPosition(UObject* obj, const FVector& pos);
-	static FVector GetScale(UObject* obj);
-	static void SetScale(UObject* obj, const FVector& pos);
-	static FVector GetRotate(UObject* obj);
-	static void SetRotate(UObject* obj, const FVector& pos);
-	static float GetAlpha(UObject* obj);
-	static void SetAlpha(UObject* obj, float alpha);
-	static FLinearColor GetColor(UObject* obj);
-	static void SetColor(UObject* obj, const FLinearColor& color);
+	static FVector GetPosition(UObject* Obj);
+	static void SetPosition(UObject* Obj, const FVector& Pos);
+	static FVector GetScale(UObject* Obj);
+	static void SetScale(UObject* Obj, const FVector& Pos);
+	static FVector GetRotate(UObject* Obj);
+	static void SetRotate(UObject* Obj, const FVector& Pos);
+	static float GetAlpha(UObject* Obj);
+	static void SetAlpha(UObject* Obj, float alpha);
+	static FLinearColor GetColor(UObject* Obj);
+	static void SetColor(UObject* Obj, const FLinearColor& color);
 private:
-	static bool IsValidActor(UObject* obj);
-	static bool IsValidWidget(UObject* obj);
-	static IQTweenPropAccessor* GetValidGetterSetter(UObject* obj);
+	static bool IsValidActor(UObject* Obj);
+	static bool IsValidWidget(UObject* Obj);
+	static IQTweenPropAccessor* GetValidGetterSetter(UObject* Obj);
 
 	static FQTweenActorPropAccessor ActorGetterSetter;
-	static FQTweenWidgetPropAccessor WidgetGettterSetter;
+	static FQTweenWidgetPropAccessor WidgetGetterSetter;
 };

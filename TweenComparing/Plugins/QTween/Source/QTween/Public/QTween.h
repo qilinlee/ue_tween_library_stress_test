@@ -126,8 +126,6 @@ protected:
 	
 	uint8 bHasExtraOnCompletes : 1;
 	
-	uint8 bHasPhysics : 1;
-	
 	uint8 bOnCompleteOnRepeat : 1;
 	
 	uint8 bOnCompleteOnStart : 1;
@@ -147,8 +145,6 @@ protected:
 	float Time;
 	
 	float Speed;
-	
-	float LastVal;
 	
 	float Direction;
 	
@@ -176,13 +172,9 @@ protected:
 
     FVector Axis;
 
-    FQuat OrigRotation;
-
 	TWeakObjectPtr<UCurveFloat> AnimCurve;
 
     uint32 InitFrameCount;
-
-    FLinearColor Color;
 
     FQTweenEvent OnStart;
 
@@ -191,8 +183,6 @@ protected:
     FQTweenOnUpdateEvent OnUpdate;
 private:
 	static float Val;
-	static float DT;
-	static FVector NewVector;
 	
 	FVector DiffDiv2;
 	EQTweenType EaseType;
@@ -246,7 +236,7 @@ public:
 	
 	TSharedRef<FQTweenInstance> SetPeriod(float InPeriod);
 	
-	TSharedRef<FQTweenInstance> SetScale(float fScale);
+	TSharedRef<FQTweenInstance> SetScale(float InScale);
 	
 	TSharedRef<FQTweenInstance> SetTo(const FVector& InTo);
 	
@@ -266,7 +256,7 @@ public:
 	
 	TSharedRef<FQTweenInstance> SetRepeat(int32 Repeat);
 	
-	TSharedRef<FQTweenInstance> SetLoopType(EQTweenLoopType eLoopType);
+	TSharedRef<FQTweenInstance> SetLoopType(EQTweenLoopType ELoopType);
 	
 	TSharedRef<FQTweenInstance> SetUseEstimatedTime(bool InUseEstimatedTime);
 	
@@ -276,7 +266,7 @@ public:
 	
 	TSharedRef<FQTweenInstance> SetUseManualTime(bool InUseManualTime);
 	
-	TSharedRef<FQTweenInstance> SetLoopCount(int32 count);
+	TSharedRef<FQTweenInstance> SetLoopCount(int32 InCount);
 	
 	TSharedRef<FQTweenInstance> SetLoopOnce();
 	
@@ -345,26 +335,26 @@ public:
 	float TweenOnCurve(float ratioPassed) const;
 	FVector TweenOnCurve(float ratioPassed, FVector& OutVector) const;
 	
-    static bool IsValid(const TSharedPtr<FQTweenInstance> Tween);
-	static bool IsValid(const FQTweenInstance* Tween);
+    static bool IsValid(const TSharedPtr<FQTweenInstance> Instance);
+	static bool IsValid(const FQTweenInstance* Instance);
 private:
 	float GetDeltaTime();
 	void Init();
 	void InitFromInternal();
 	void InitSpeed();
 	void Callback();
-	void SetEaseInternal(EQTweenEasingFunc func, EQTweenEasingType type);
+	void SetEaseInternal(EQTweenEasingFunc EasingFunc, EQTweenEasingType type);
 	void SetEasePunch();
 	void SetEaseShake();
 	void SetEaseSprint();
 
 	
 	FVector TweenByEasingType();
-    static FLinearColor TweenColor(TSharedRef<FQTweenInstance> Tween, float Factor);
+    static FLinearColor TweenColor(TSharedRef<FQTweenInstance> Instance, float Factor);
 };
 
 USTRUCT(BlueprintType)
-struct FQTweenHandle
+struct QTWEEN_API FQTweenHandle
 {
 	GENERATED_BODY()
 
