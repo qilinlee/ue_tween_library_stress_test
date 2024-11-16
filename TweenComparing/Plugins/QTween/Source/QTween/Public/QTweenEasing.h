@@ -296,7 +296,7 @@ namespace QTween
         public:
             static FElasticEasing Elastic;
 
-            FElasticEasing() : overshoot(1.f), period(0.3f) {}
+            FElasticEasing() : Overshoot(1.f), Period(0.3f) {}
 
             virtual float EaseIn(float Factor, float Start, float End) override final
             {
@@ -306,9 +306,9 @@ namespace QTween
                 if (Factor >= 0.9999f)
                     return End;
 
-                float p = period;
+                float p = Period;
                 float a = 0.f;
-                float s = 0.f;
+                float s;
                 float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
@@ -321,9 +321,9 @@ namespace QTween
                     s = p / (2.f * (PI)*FMath::FastAsin(d / a));
                 }
 
-                float over = overshoot;
-                if (overshoot > 1.f && Factor > 0.6f)
-                    over = 1.f + (1.f - Factor) / 0.4f * (overshoot - 1.f);
+                float over = Overshoot;
+                if (Overshoot > 1.f && Factor > 0.6f)
+                    over = 1.f + (1.f - Factor) / 0.4f * (Overshoot - 1.f);
 
                 Factor -= 1;
 
@@ -340,9 +340,9 @@ namespace QTween
                 if (Factor >= 0.9999f)
                     return End;
 
-                float p = period;
+                float p = Period;
                 float a = 0.f;
-                float s = 0.f;
+                float s;
                 float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
@@ -353,9 +353,9 @@ namespace QTween
                 else
                     s = p / (2.f * (PI)*FMath::FastAsin(d / a));
 
-                float over = overshoot;
-                if (overshoot > 1.f && Factor < 0.4f)
-                    over = 1.f + (Factor / 0.4f * (overshoot - 1.f));
+                float over = Overshoot;
+                if (Overshoot > 1.f && Factor < 0.4f)
+                    over = 1.f + (Factor / 0.4f * (Overshoot - 1.f));
 
                 float postFix = a * FMath::Pow(2, -10 * Factor);
                 float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
@@ -372,9 +372,9 @@ namespace QTween
                     return End;
 
                 Factor *= 2;
-                float p = period;
+                float p = Period;
                 float a = 0.f;
-                float s = 0.f;
+                float s;
                 float d = End - Start;
 
                 if (a == 0.f || a < FMath::Abs(d))
@@ -383,33 +383,35 @@ namespace QTween
                     s = p / 4.f;
                 }
                 else
+                {
                     s = p / (2.f * (PI)*FMath::FastAsin(d / a));
+                }
 
-                float over = overshoot;
-                if (overshoot > 1.f)
+                float Over = Overshoot;
+                if (Overshoot > 1.f)
                 {
                     if (Factor < 0.2f)
-                        over = 1.f + (Factor / 0.2f * (overshoot - 1.f));
+                        Over = 1.f + (Factor / 0.2f * (Overshoot - 1.f));
                     else if (Factor > 0.8f)
-                        over = 1.f + ((1 - Factor) / 0.2f * (overshoot - 1.f));
+                        Over = 1.f + ((1 - Factor) / 0.2f * (Overshoot - 1.f));
                 }
 
 
                 Factor -= 1.f;
                 if (Factor < 1)
                 {
-                    float postFix = a * FMath::Pow(2, 10 * Factor);
-                    float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
-                    return (Start - 0.5f * (postFix * sine) * over);
+                    const float PostFix = a * FMath::Pow(2, 10 * Factor);
+                    const float Sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
+                    return (Start - 0.5f * (PostFix * Sine) * Over);
                 }
 
-                float postFix = a * FMath::Pow(2, -10 * Factor);
-                float sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
-                return (postFix * sine * 0.5f * over + End);
+                const float PostFix = a * FMath::Pow(2, -10 * Factor);
+                const float Sine = FMath::Sin((Factor - s) * (2 * (PI)) / p);
+                return (PostFix * Sine * 0.5f * Over + End);
             }
         private:
-            float overshoot;
-            float period;
+            float Overshoot;
+            float Period;
         };
 
         class FBackEasing : public IQTweenEasing
@@ -442,8 +444,8 @@ namespace QTween
                 s *= (1.525f * Overshoot);
                 if ((t /= d / 2) < 1)
                     return (c / 2 * (t * t * (((s)+1) * t - s)) + b);
-                float postFix = t -= 2;
-                return (c / 2 * ((postFix)*t * (((s)+1) * t + s) + 2) + b);
+                const float PostFix = t -= 2;
+                return (c / 2 * ((PostFix)*t * (((s)+1) * t + s) + 2) + b);
             }
         private:
             float Overshoot;
